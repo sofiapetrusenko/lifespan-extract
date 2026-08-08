@@ -24,39 +24,7 @@ jobs:
         run: ruff check .
 
       - name: Validate gold set against schema
-        run: |
-          python - <<'EOF'
-          import json, sys
-          from pathlib import Path
-
-          schema_path = Path("schema/experiment.schema.json")
-          gold_dir = Path("data/gold")
-
-          if not schema_path.exists():
-              print("schema not present yet — skipping gold validation")
-              sys.exit(0)
-
-          from jsonschema import Draft202012Validator
-          schema = json.loads(schema_path.read_text())
-          validator = Draft202012Validator(schema)
-
-          gold_files = sorted(gold_dir.glob("*.json")) if gold_dir.exists() else []
-          if not gold_files:
-              print("no gold files yet — skipping")
-              sys.exit(0)
-
-          failed = False
-          for f in gold_files:
-              errors = list(validator.iter_errors(json.loads(f.read_text())))
-              if errors:
-                  failed = True
-                  print(f"FAIL {f}")
-                  for e in errors:
-                      print(f"  - {'/'.join(map(str, e.path)) or '<root>'}: {e.message}")
-              else:
-                  print(f"OK   {f}")
-          sys.exit(1 if failed else 0)
-          EOF
+        run: python scripts/validate_gold.py
 
       - name: Tests
         run: |

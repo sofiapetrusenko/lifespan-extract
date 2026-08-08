@@ -1,0 +1,182 @@
+{
+  "schema_version": "0.1.0",
+  "paper": {
+    "doi": "TODO",
+    "title": "TODO",
+    "year": null,
+    "source": "TODO",
+    "pmid": null
+  },
+  "experiments": [
+    {
+      "experiment_id": "TODO",
+      "organism": {
+        "value": "TODO",
+        "source_quote": "TODO",
+        "confidence": "TODO",
+        "extracted_from": "TODO"
+      },
+      "strain": {
+        "value": "TODO",
+        "source_quote": "TODO",
+        "confidence": "TODO",
+        "extracted_from": "TODO"
+      },
+      "sex": {
+        "value": "TODO",
+        "source_quote": "TODO",
+        "confidence": "TODO",
+        "extracted_from": "TODO"
+      },
+      "sample_size": {
+        "value": null,
+        "source_quote": null,
+        "confidence": "TODO",
+        "extracted_from": "TODO"
+      },
+      "intervention": {
+        "type": {
+          "value": "TODO",
+          "source_quote": "TODO",
+          "confidence": "TODO",
+          "extracted_from": "TODO"
+        },
+        "agent": {
+          "value": "TODO",
+          "source_quote": "TODO",
+          "confidence": "TODO",
+          "extracted_from": "TODO"
+        },
+        "dose": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "TODO",
+          "extracted_from": "TODO"
+        },
+        "age_at_start": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "TODO",
+          "extracted_from": "TODO"
+        }
+      },
+      "mechanism": {
+        "value": null,
+        "source_quote": null,
+        "confidence": "TODO",
+        "extracted_from": "TODO"
+      },
+      "lifespan_effect": {
+        "direction": {
+          "value": "TODO",
+          "source_quote": "TODO",
+          "confidence": "TODO",
+          "extracted_from": "TODO"
+        },
+        "median_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "TODO",
+          "extracted_from": "TODO"
+        },
+        "max_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "TODO",
+          "extracted_from": "TODO"
+        },
+        "p_value": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "TODO",
+          "extracted_from": "TODO"
+        }
+      }
+    },
+    {
+      "experiment_id": "TODO",
+      "organism": {
+        "value": "TODO",
+        "source_quote": "TODO",
+        "confidence": "TODO",
+        "extracted_from": "TODO"
+      },
+      "strain": {
+        "value": "TODO",
+        "source_quote": "TODO",
+        "confidence": "TODO",
+        "extracted_from": "TODO"
+      },
+      "sex": {
+        "value": "TODO",
+        "source_quote": "TODO",
+        "confidence": "TODO",
+        "extracted_from": "TODO"
+      },
+      "sample_size": {
+        "value": null,
+        "source_quote": null,
+        "confidence": "TODO",
+        "extracted_from": "TODO"
+      },
+      "intervention": {
+        "type": {
+          "value": "TODO",
+          "source_quote": "TODO",
+          "confidence": "TODO",
+          "extracted_from": "TODO"
+        },
+        "agent": {
+          "value": "TODO",
+          "source_quote": "TODO",
+          "confidence": "TODO",
+          "extracted_from": "TODO"
+        },
+        "dose": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "TODO",
+          "extracted_from": "TODO"
+        },
+        "age_at_start": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "TODO",
+          "extracted_from": "TODO"
+        }
+      },
+      "mechanism": {
+        "value": null,
+        "source_quote": null,
+        "confidence": "TODO",
+        "extracted_from": "TODO"
+      },
+      "lifespan_effect": {
+        "direction": {
+          "value": "TODO",
+          "source_quote": "TODO",
+          "confidence": "TODO",
+          "extracted_from": "TODO"
+        },
+        "median_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "TODO",
+          "extracted_from": "TODO"
+        },
+        "max_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "TODO",
+          "extracted_from": "TODO"
+        },
+        "p_value": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "TODO",
+          "extracted_from": "TODO"
+        }
+      }
+    }
+  ]
+}

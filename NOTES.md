@@ -25,7 +25,11 @@
 
 ### Carried forward — Phase 2 requirement
 
-- **Error reporting must surface ALL validator errors, never `errors[0]`.** When a claim wrapper's `value` violates its enum, `jsonschema` emits *two* errors: a deep, correct one (`experiments[0].organism.value: 'M. mulatta' is not one of [...]`) and a shallow, misleading one (`experiments[0].organism: Unevaluated properties are not allowed ('value' was unexpected)`). This is per spec — a failed subschema produces no annotation, so `value` counts as unevaluated — and it is not a schema bug to fix. Reporting only the first error would make the "loud failure with a windowed excerpt" rule emit confident nonsense. `scripts/validate_gold.py` already does this correctly: it prints every error, sorted deepest-path-first so the real diagnosis leads. Phase 2's extraction error path must match that behaviour. Nothing to implement before Phase 2.
+- **Error reporting must surface ALL validator errors, never `errors[0]`.** One bad record routinely produces many independent errors, and `unevaluatedProperties` adds noise on top that can sort ahead of the real diagnosis. Reporting only the first would make the "loud failure with a windowed excerpt" rule emit confident nonsense. `scripts/validate_gold.py` already does this correctly — every error, sorted deepest-path-first so the specific message leads. Phase 2's extraction error path must match. Nothing to implement before Phase 2.
+- **The `unevaluatedProperties` noise is version- and location-dependent** — measured, not assumed:
+  - A failed `value` (declared in the wrapper's own `properties`, sibling to the `allOf`): jsonschema 4.4.0 emitted a spurious `Unevaluated properties are not allowed ('value' was unexpected)` alongside the real enum error; 4.26.0 does not. This is why `requirements-dev.txt` floors jsonschema at 4.18.
+  - A failed `confidence` or `extracted_from` (declared inside the shared `#/$defs/provenance` subschema): **both versions** emit the noise. The whole `allOf` branch fails, so it contributes no annotations and all three provenance keys count as unevaluated. Expect roughly 2× error inflation on wrappers with a bad `confidence`.
+  - Neither is a schema bug. Do not "fix" it by dropping `unevaluatedProperties` — that would let invented fields through, which is the opposite of the untrusted-input rule.
 
 ### Known limitations — accepted for MVP
 
@@ -34,7 +38,10 @@
 ### Tooling
 
 - `scripts/validate_gold.py` validates every `data/gold/*.json` against the schema, prints all errors per file with dotted paths (`experiments[0].lifespan_effect.direction`), and exits 1 on any failure. Read-only with respect to `data/gold/`. An empty gold directory prints "nothing to validate" and exits 0 — legitimate during Phase 0, and stated out loud so an empty glob never resembles a clean run.
-- `.github/workflows/ci.yml` still does this validation with an inline heredoc, which now duplicates the script. Replace that step with `python scripts/validate_gold.py` so local and CI checks cannot drift apart.
+- `.github/workflows/ci.yml` calls `python scripts/validate_gold.py` directly. The inline heredoc it used to carry is gone: local and CI validation are now literally the same code and cannot drift.
+- `schema/gold_template.json` is the copy-ready skeleton for hand-labelling: full required structure, two stubbed entries in `experiments[]` for multi-organism papers, every value `"TODO"` or `null`. **It fails validation by design** (91 errors when untouched) — a template that validated would let a half-filled record pass as done. Copy it into `data/gold/<paper>.json`, fill it, run `python scripts/validate_gold.py` until clean. Filling `confidence` and `extracted_from` first collapses most of the error count, since those two fields are what trigger the `unevaluatedProperties` inflation above.
+- Dev environment is a project venv at `.venv` (Python 3.11, matching CI and PLAN.md), never the anaconda base env — whose Python is 3.9.12 and whose jsonschema is 4.4.0, old enough to change validator behaviour. `python3.11 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt`. `.venv/` is gitignored.
+- `ruff check .` runs clean from the venv with no config file, so CI's bare `ruff check .` sees identical settings. It caught `EXE001` (shebang without the executable bit) on `scripts/validate_gold.py`, fixed with `chmod +x` — the file is committed mode 100755.
 
 ### Resolved — do not reopen
 

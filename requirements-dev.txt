@@ -1,0 +1,12 @@
+# Development tooling. Runtime dependencies live in requirements.txt (Phase 1+).
+#
+# Install into the project venv, never into a global or conda env:
+#   python3.11 -m venv .venv
+#   .venv/bin/pip install -r requirements-dev.txt
+
+ruff
+pytest
+
+# 4.18 is the floor: earlier releases mishandle draft 2020-12 unevaluatedProperties,
+# which every claim wrapper in schema/experiment.schema.json relies on.
+jsonschema>=4.18
