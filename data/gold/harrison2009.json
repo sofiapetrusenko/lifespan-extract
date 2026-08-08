@@ -1,182 +1,196 @@
 {
-  "schema_version": "0.1.0",
+  "schema_version": "0.2.1",
   "paper": {
-    "doi": "TODO",
-    "title": "TODO",
-    "year": null,
-    "source": "TODO",
-    "pmid": null
+    "doi": "10.1038/nature08221",
+    "title": "Rapamycin fed late in life extends lifespan in genetically heterogeneous mice",
+    "year": 2009,
+    "source": "pubmed",
+    "pmid": "19587680"
   },
   "experiments": [
     {
-      "experiment_id": "TODO",
+      "experiment_id": "harrison2009-mmusculus-rapamycin-male",
       "organism": {
-        "value": "TODO",
-        "source_quote": "TODO",
-        "confidence": "TODO",
-        "extracted_from": "TODO"
+        "value": "M. musculus",
+        "source_quote": "rapamycin, an inhibitor of the mTOR pathway, extends median and maximal lifespan of both male and female mice when fed beginning at 600 days of age",
+        "confidence": "high",
+        "extracted_from": "abstract"
       },
       "strain": {
-        "value": "TODO",
-        "source_quote": "TODO",
-        "confidence": "TODO",
-        "extracted_from": "TODO"
+        "value": "CB6F1 x C3D2F1 (genetically heterogeneous)",
+        "source_quote": "Specific pathogen free (SPF) mice were produced at each of the 3 test sites by mating CB6F1 females with C3D2F1 males to produce a genetically heterogeneous population",
+        "confidence": "high",
+        "extracted_from": "full_text"
       },
       "sex": {
-        "value": "TODO",
-        "source_quote": "TODO",
-        "confidence": "TODO",
-        "extracted_from": "TODO"
+        "value": "male",
+        "source_quote": "On the basis of age at 90% mortality, rapamycin led to an increase of 14% for females and 9% for males",
+        "confidence": "high",
+        "extracted_from": "abstract"
       },
       "sample_size": {
         "value": null,
         "source_quote": null,
-        "confidence": "TODO",
-        "extracted_from": "TODO"
+        "confidence": "high",
+        "extracted_from": "full_text"
       },
       "intervention": {
         "type": {
-          "value": "TODO",
-          "source_quote": "TODO",
-          "confidence": "TODO",
-          "extracted_from": "TODO"
+          "value": "pharmacological",
+          "source_quote": "rapamycin, an inhibitor of the mTOR pathway",
+          "confidence": "high",
+          "extracted_from": "abstract"
         },
         "agent": {
-          "value": "TODO",
-          "source_quote": "TODO",
-          "confidence": "TODO",
-          "extracted_from": "TODO"
+          "value": "rapamycin",
+          "source_quote": "rapamycin, an inhibitor of the mTOR pathway",
+          "confidence": "high",
+          "extracted_from": "abstract"
         },
         "dose": {
           "value": null,
           "source_quote": null,
-          "confidence": "TODO",
-          "extracted_from": "TODO"
+          "confidence": "high",
+          "extracted_from": "full_text"
         },
         "age_at_start": {
-          "value": null,
-          "source_quote": null,
-          "confidence": "TODO",
-          "extracted_from": "TODO"
+          "value": "600 days",
+          "source_quote": "extends median and maximal lifespan of both male and female mice when fed beginning at 600 days of age",
+          "confidence": "high",
+          "extracted_from": "abstract"
         }
       },
       "mechanism": {
-        "value": null,
-        "source_quote": null,
-        "confidence": "TODO",
-        "extracted_from": "TODO"
+        "value": "mTOR inhibition",
+        "source_quote": "rapamycin, an inhibitor of the mTOR pathway",
+        "confidence": "high",
+        "extracted_from": "abstract"
       },
       "lifespan_effect": {
         "direction": {
-          "value": "TODO",
-          "source_quote": "TODO",
-          "confidence": "TODO",
-          "extracted_from": "TODO"
+          "value": "increase",
+          "source_quote": "mice fed rapamycin were longer lived than controls (p < 0.0001) in both males and females",
+          "confidence": "high",
+          "extracted_from": "full_text"
         },
         "median_change_pct": {
           "value": null,
           "source_quote": null,
-          "confidence": "TODO",
-          "extracted_from": "TODO"
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "mean_change_pct": {
+          "value": 9,
+          "source_quote": "Expressed as mean lifespan, the effect sizes were 9% for males and 13% for females in the pooled dataset",
+          "confidence": "high",
+          "extracted_from": "full_text"
         },
         "max_change_pct": {
-          "value": null,
-          "source_quote": null,
-          "confidence": "TODO",
-          "extracted_from": "TODO"
+          "value": 9,
+          "source_quote": "On the basis of age at 90% mortality, rapamycin led to an increase of 14% for females and 9% for males",
+          "confidence": "high",
+          "extracted_from": "abstract"
         },
         "p_value": {
-          "value": null,
-          "source_quote": null,
-          "confidence": "TODO",
-          "extracted_from": "TODO"
+          "value": "< 0.0001",
+          "source_quote": "For data pooled across sites, a log-rank test rejected the null hypothesis that treatment and control groups did not differ (p < 0.0001)",
+          "confidence": "high",
+          "extracted_from": "full_text"
         }
-      }
+      },
+      "notes": "Main cohort only (rapamycin from 600 days). A separate Cohort 2006 (from 270 days) showed reduced mortality at interim analysis but no effect size reported. Total N=1901 across sexes and groups; per-sex N not reported in main text. Dose not stated in main text; microencapsulated rapamycin (Eudragit S100) in 5LG6 chow, blood levels 60-70 ng/ml. Paper speculates anti-neoplastic effects and/or retarded ageing as mechanisms; mTOR inhibition recorded as the stated mechanism of action."
     },
     {
-      "experiment_id": "TODO",
+      "experiment_id": "harrison2009-mmusculus-rapamycin-female",
       "organism": {
-        "value": "TODO",
-        "source_quote": "TODO",
-        "confidence": "TODO",
-        "extracted_from": "TODO"
+        "value": "M. musculus",
+        "source_quote": "rapamycin, an inhibitor of the mTOR pathway, extends median and maximal lifespan of both male and female mice when fed beginning at 600 days of age",
+        "confidence": "high",
+        "extracted_from": "abstract"
       },
       "strain": {
-        "value": "TODO",
-        "source_quote": "TODO",
-        "confidence": "TODO",
-        "extracted_from": "TODO"
+        "value": "CB6F1 x C3D2F1 (genetically heterogeneous)",
+        "source_quote": "Specific pathogen free (SPF) mice were produced at each of the 3 test sites by mating CB6F1 females with C3D2F1 males to produce a genetically heterogeneous population",
+        "confidence": "high",
+        "extracted_from": "full_text"
       },
       "sex": {
-        "value": "TODO",
-        "source_quote": "TODO",
-        "confidence": "TODO",
-        "extracted_from": "TODO"
+        "value": "female",
+        "source_quote": "On the basis of age at 90% mortality, rapamycin led to an increase of 14% for females and 9% for males",
+        "confidence": "high",
+        "extracted_from": "abstract"
       },
       "sample_size": {
         "value": null,
         "source_quote": null,
-        "confidence": "TODO",
-        "extracted_from": "TODO"
+        "confidence": "high",
+        "extracted_from": "full_text"
       },
       "intervention": {
         "type": {
-          "value": "TODO",
-          "source_quote": "TODO",
-          "confidence": "TODO",
-          "extracted_from": "TODO"
+          "value": "pharmacological",
+          "source_quote": "rapamycin, an inhibitor of the mTOR pathway",
+          "confidence": "high",
+          "extracted_from": "abstract"
         },
         "agent": {
-          "value": "TODO",
-          "source_quote": "TODO",
-          "confidence": "TODO",
-          "extracted_from": "TODO"
+          "value": "rapamycin",
+          "source_quote": "rapamycin, an inhibitor of the mTOR pathway",
+          "confidence": "high",
+          "extracted_from": "abstract"
         },
         "dose": {
           "value": null,
           "source_quote": null,
-          "confidence": "TODO",
-          "extracted_from": "TODO"
+          "confidence": "high",
+          "extracted_from": "full_text"
         },
         "age_at_start": {
-          "value": null,
-          "source_quote": null,
-          "confidence": "TODO",
-          "extracted_from": "TODO"
+          "value": "600 days",
+          "source_quote": "extends median and maximal lifespan of both male and female mice when fed beginning at 600 days of age",
+          "confidence": "high",
+          "extracted_from": "abstract"
         }
       },
       "mechanism": {
-        "value": null,
-        "source_quote": null,
-        "confidence": "TODO",
-        "extracted_from": "TODO"
+        "value": "mTOR inhibition",
+        "source_quote": "rapamycin, an inhibitor of the mTOR pathway",
+        "confidence": "high",
+        "extracted_from": "abstract"
       },
       "lifespan_effect": {
         "direction": {
-          "value": "TODO",
-          "source_quote": "TODO",
-          "confidence": "TODO",
-          "extracted_from": "TODO"
+          "value": "increase",
+          "source_quote": "mice fed rapamycin were longer lived than controls (p < 0.0001) in both males and females",
+          "confidence": "high",
+          "extracted_from": "full_text"
         },
         "median_change_pct": {
           "value": null,
           "source_quote": null,
-          "confidence": "TODO",
-          "extracted_from": "TODO"
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "mean_change_pct": {
+          "value": 13,
+          "source_quote": "Expressed as mean lifespan, the effect sizes were 9% for males and 13% for females in the pooled dataset",
+          "confidence": "high",
+          "extracted_from": "full_text"
         },
         "max_change_pct": {
-          "value": null,
-          "source_quote": null,
-          "confidence": "TODO",
-          "extracted_from": "TODO"
+          "value": 14,
+          "source_quote": "On the basis of age at 90% mortality, rapamycin led to an increase of 14% for females and 9% for males",
+          "confidence": "high",
+          "extracted_from": "abstract"
         },
         "p_value": {
-          "value": null,
-          "source_quote": null,
-          "confidence": "TODO",
-          "extracted_from": "TODO"
+          "value": "< 0.0001",
+          "source_quote": "For data pooled across sites, a log-rank test rejected the null hypothesis that treatment and control groups did not differ (p < 0.0001)",
+          "confidence": "high",
+          "extracted_from": "full_text"
         }
-      }
+      },
+      "notes": "Main cohort only (rapamycin from 600 days). A separate Cohort 2006 (from 270 days) showed reduced mortality at interim analysis but no effect size reported. Total N=1901 across sexes and groups; per-sex N not reported in main text. Dose not stated in main text; microencapsulated rapamycin (Eudragit S100) in 5LG6 chow, blood levels 60-70 ng/ml. Paper speculates anti-neoplastic effects and/or retarded ageing as mechanisms; mTOR inhibition recorded as the stated mechanism of action."
     }
   ]
 }
