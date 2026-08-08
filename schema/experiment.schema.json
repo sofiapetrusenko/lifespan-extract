@@ -2,6 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/sofiapetrusenko/lifespan-extract/blob/main/schema/experiment.schema.json",
   "title": "lifespan-extract paper record",
+  "x-schema-version": "0.2.1",
   "description": "One file = one paper. A paper contributes one experiment entry per (organism, intervention) pair, so multi-organism papers yield multiple entries in experiments[]. Claim fields carry provenance; paper metadata is flat because it comes from the ingest API rather than the prose.",
   "type": "object",
   "required": ["schema_version", "paper", "experiments"],
@@ -11,8 +12,8 @@
     "schema_version": {
       "type": "string",
       "pattern": "^\\d+\\.\\d+\\.\\d+$",
-      "description": "Semver of the schema this record was written against. Extraction is idempotent per (paper, schema_version).",
-      "examples": ["0.2.0"]
+      "description": "Semver of the schema this record was written against. Extraction is idempotent per (paper, schema_version). Deliberately a pattern rather than a const: additive releases stay backward compatible, so an older record still validates.",
+      "examples": ["0.2.1"]
     },
 
     "paper": {
@@ -268,6 +269,12 @@
             },
             "p_value": { "$ref": "#/$defs/claim_p_value" }
           }
+        },
+
+        "notes": {
+          "type": ["string", "null"],
+          "minLength": 1,
+          "description": "Free-text labeller commentary. Flat, not a claim wrapper: it is human annotation, not something extracted and quoted from the paper, so it carries no provenance and is never scored in evals. Destination for content that must not become a record of its own — cohorts with no reported effect size (interim analyses), and speculative mechanisms raised in the discussion rather than stated as the mechanism of action. null when there is nothing to say."
         }
       }
     }

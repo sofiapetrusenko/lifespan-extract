@@ -65,9 +65,7 @@
 - **`proposed_mechanism` carries the stated mechanism of action only.** Speculative mechanisms raised in the discussion go in `notes`. The field records what the authors claim to have shown, not what they hypothesise.
 - **Provenance — Harrison 2009:** labels drafted with AI assistance from the full text; values human-verified against the PDF and the PubMed record.
 
-### Blocked — two guidelines reference fields that do not exist in v0.2.0
-
-Recorded as written, but not yet actionable:
+### Blocked at v0.2.0 — both resolved in v0.2.1 below
 
 - **`notes` does not exist.** Two guidelines above route content to it (unreported cohorts, speculative mechanisms). There is no `notes` field at either paper or experiment level, and every object is `additionalProperties: false`, so adding the key to a gold file makes it fail validation. Needs ratification: per-experiment `notes` (nullable string, flat — it is commentary, not an extracted claim) is the smaller change; paper-level would not fit the "unreported cohort" case, which is experiment-scoped.
 - **`proposed_mechanism` does not exist; the field is named `mechanism`.** Its description already says "Proposed mechanism as stated by the authors, not inferred", so the guideline matches the existing field's intent exactly. Either rename `mechanism` → `proposed_mechanism` (breaking, but no gold file uses it yet) or keep `mechanism` and treat the guideline as describing it. Not renamed unilaterally.
@@ -76,3 +74,23 @@ Recorded as written, but not yet actionable:
 
 - `scripts/validate_gold.py` hardcodes the version in its success message (`All N file(s) valid against schema v0.2.0`). The schema has no machine-readable version of its own — only the `schema_version` *instance* field — so this string must be bumped by hand on every schema release. Worth adding a root-level version keyword to the schema file if this drifts even once.
 - `data/gold/harrison2009.json` declares `schema_version: "0.1.0"`. Not updated here: `data/gold/` is human-only per CLAUDE.md. It still validates against v0.2.0 (the change is additive), but the human should bump it when filling the file.
+
+---
+
+## 2026-08-08 — schema v0.2.1
+
+Resolves both items blocked at v0.2.0, plus the version-drift note. Additive only: a v0.1.0 or v0.2.0 record still validates.
+
+1. **Added per-experiment `notes`: nullable flat string.** Ratified. Flat rather than a claim wrapper, because it is labeller commentary rather than something extracted and quoted — it carries no `source_quote`/`confidence` and is never scored in evals. Destination for the two guidelines that previously had nowhere to write: cohorts with no reported effect size (interim analyses), and speculative mechanisms from the discussion. Paper-level `notes` was considered and rejected — the unreported-cohort case is experiment-scoped.
+2. **`mechanism` keeps its name; no rename to `proposed_mechanism`.** Ratified. The v0.2.0 labeling guideline describes labeling policy — record the stated mechanism of action, send speculation to `notes` — not a field name. The field's own description already says "Proposed mechanism as stated by the authors, not inferred", so policy and schema agree.
+3. **Schema declares its own version at the root: `"x-schema-version": "0.2.1"`.** `scripts/validate_gold.py` reads it instead of hardcoding a literal, and exits loudly if the key is missing. `x-` prefixed so it can never collide with a future JSON Schema keyword; validators ignore unknown keywords, so it has no effect on validation. This is now the single source of truth for the schema's version — bump it and the tooling follows.
+
+### Two versions, deliberately
+
+- `x-schema-version` (schema root) is what the *schema file* is. One place, bumped per release.
+- `schema_version` (record root) is what an individual *record* was written against, and stays a `pattern` rather than a `const`/`enum`. Making it a const would pin every record to the current release and break the backward compatibility that additive bumps are supposed to buy — a v0.1.0 gold file would start failing on a bump that changed nothing relevant to it. The cost is that nothing enforces agreement between the two; per-field eval in Phase 3 is where a genuinely stale record should surface.
+
+### Still open
+
+- `data/gold/harrison2009.json` remains an unfilled copy of the template (all `TODO`/`null`) and declares `schema_version: "0.1.0"`. Untouched here — `data/gold/` is human-only. The v0.2.0 provenance guideline stating its values were human-verified does not yet describe the file on disk.
+- `schema/example.json`'s `source_quote` was drafted, not transcribed from the PubMed record. Flagged for verification; left as is by decision.

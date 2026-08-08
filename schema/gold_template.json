@@ -1,5 +1,5 @@
 {
-  "schema_version": "0.2.0",
+  "schema_version": "0.2.1",
   "paper": {
     "doi": "TODO",
     "title": "TODO",
@@ -97,7 +97,8 @@
           "confidence": "TODO",
           "extracted_from": "TODO"
         }
-      }
+      },
+      "notes": null
     },
     {
       "experiment_id": "TODO",
@@ -188,7 +189,8 @@
           "confidence": "TODO",
           "extracted_from": "TODO"
         }
-      }
+      },
+      "notes": null
     }
   ]
 }

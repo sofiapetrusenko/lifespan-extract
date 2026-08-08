@@ -25,6 +25,10 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 SCHEMA_PATH = REPO_ROOT / "schema" / "experiment.schema.json"
 GOLD_DIR = REPO_ROOT / "data" / "gold"
 
+# Root-level annotation in the schema file. Not a JSON Schema keyword: validators
+# ignore unknown keywords, so this carries the version without affecting validation.
+SCHEMA_VERSION_KEY = "x-schema-version"
+
 
 def format_path(error) -> str:
     """Render an error location as experiments[0].organism.value."""
@@ -48,7 +52,8 @@ def sort_key(error):
     return (-len(error.absolute_path), list(map(str, error.absolute_path)))
 
 
-def load_schema() -> Draft202012Validator:
+def load_schema() -> tuple[Draft202012Validator, str]:
+    """Return the validator and the schema's own declared version."""
     if not SCHEMA_PATH.exists():
         sys.exit(f"schema not found: {SCHEMA_PATH}")
     try:
@@ -58,7 +63,17 @@ def load_schema() -> Draft202012Validator:
 
     # A malformed schema silently accepts everything, so check it explicitly.
     Draft202012Validator.check_schema(schema)
-    return Draft202012Validator(schema)
+
+    # Read the version rather than hardcoding it: a stale literal here would
+    # misreport which schema a gold file was checked against.
+    version = schema.get(SCHEMA_VERSION_KEY)
+    if not version:
+        sys.exit(
+            f"{SCHEMA_PATH.name} has no {SCHEMA_VERSION_KEY!r} key. "
+            "Add it at the schema root; it is the single source of truth "
+            "for the schema's version."
+        )
+    return Draft202012Validator(schema), version
 
 
 def check_file(path: Path, validator: Draft202012Validator) -> list[str]:
@@ -73,7 +88,7 @@ def check_file(path: Path, validator: Draft202012Validator) -> list[str]:
 
 
 def main() -> int:
-    validator = load_schema()
+    validator, schema_version = load_schema()
 
     if not GOLD_DIR.is_dir():
         sys.exit(f"gold directory not found: {GOLD_DIR}")
@@ -103,7 +118,7 @@ def main() -> int:
     if failed:
         print(f"{failed} of {total} file(s) failed validation.")
         return 1
-    print(f"All {total} file(s) valid against schema v0.2.0.")
+    print(f"All {total} file(s) valid against schema v{schema_version}.")
     return 0
 
 
