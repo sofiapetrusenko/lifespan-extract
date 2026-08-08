@@ -1,0 +1,104 @@
+{
+  "schema_version": "0.2.1",
+  "paper": {
+    "doi": "10.1038/366461a0",
+    "title": "A C. elegans mutant that lives twice as long as wild type",
+    "year": 1993,
+    "source": "pubmed",
+    "pmid": "8247153"
+  },
+  "experiments": [
+    {
+      "experiment_id": "kenyon1993-celegans-daf-2",
+      "organism": {
+        "value": "C. elegans",
+        "source_quote": "We have found that mutations in the gene daf-2 can cause fertile, active, adult Caenorhabditis elegans hermaphrodites to live more than twice as long as wild type.",
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "strain": {
+        "value": "not_reported",
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "sex": {
+        "value": "hermaphrodite",
+        "source_quote": "We have found that mutations in the gene daf-2 can cause fertile, active, adult Caenorhabditis elegans hermaphrodites to live more than twice as long as wild type.",
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "sample_size": {
+        "value": null,
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "intervention": {
+        "type": {
+          "value": "genetic",
+          "source_quote": "We have found that mutations in the gene daf-2 can cause fertile, active, adult Caenorhabditis elegans hermaphrodites to live more than twice as long as wild type.",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "agent": {
+          "value": "daf-2 mutation",
+          "source_quote": "We have found that mutations in the gene daf-2 can cause fertile, active, adult Caenorhabditis elegans hermaphrodites to live more than twice as long as wild type.",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "dose": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "age_at_start": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        }
+      },
+      "mechanism": {
+        "value": null,
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "lifespan_effect": {
+        "direction": {
+          "value": "increase",
+          "source_quote": "We have found that mutations in the gene daf-2 can cause fertile, active, adult Caenorhabditis elegans hermaphrodites to live more than twice as long as wild type.",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "median_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "mean_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "max_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "p_value": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        }
+      },
+      "notes": "Abstract-only labeling: full text paywalled (Nature 1993). Effect magnitude reported as 'more than twice as long' (>100%) but the statistic (median/mean/max) is not specified in the abstract, so all _change_pct fields are null per the mean-vs-median guideline. daf-2 allele not named in abstract. The extension requires daf-16 activity (epistasis), recorded here rather than as mechanism because the abstract states a genetic requirement, not a mechanism of action. Both genes also regulate dauer larva formation."
+    }
+  ]
+}
