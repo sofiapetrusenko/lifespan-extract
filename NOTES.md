@@ -43,7 +43,36 @@
 - Dev environment is a project venv at `.venv` (Python 3.11, matching CI and PLAN.md), never the anaconda base env — whose Python is 3.9.12 and whose jsonschema is 4.4.0, old enough to change validator behaviour. `python3.11 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt`. `.venv/` is gitignored.
 - `ruff check .` runs clean from the venv with no config file, so CI's bare `ruff check .` sees identical settings. It caught `EXE001` (shebang without the executable bit) on `scripts/validate_gold.py`, fixed with `chmod +x` — the file is committed mode 100755.
 
-### Resolved — do not reopen
+### Resolved — do not reopen (v0.1.0)
 
 - **Preprints and DOIs**: bioRxiv assigns DOIs under the `10.1101/...` prefix, so a preprint is never DOI-less. `paper.doi` stays required. Covered by a validation case.
 - **Per-experiment identity**: settled by decision 9 above.
+
+---
+
+## 2026-08-08 — schema v0.2.0
+
+**Change:** added `lifespan_effect.mean_change_pct`, same claim-wrapper shape as `median_change_pct`, nullable value. Ratified by the human.
+
+**Rationale:** mouse papers report a mean / life-expectancy change with no pooled median percentage — Harrison 2009 is the motivating case. Under v0.1.0 that number had nowhere to go, forcing a choice between dropping it and misfiling it as a median. Additive and backward compatible: a v0.1.0 record still validates against v0.2.0, since the new field is optional.
+
+### Labeling guidelines
+
+- **Mean vs median are never substituted for one another.** If a paper reports only a mean, `median_change_pct` is `null` and the number goes in `mean_change_pct`. The reverse likewise. Median/mean/max confusion is already flagged in PLAN.md Phase 3 as an expected failure mode; the schema keeps all three structurally distinct so the error is visible in per-field eval rather than averaged away.
+- **Age at 90% mortality / 90th-percentile survival maps to `max_change_pct`**, not to mean or median. This is the standard proxy for maximum lifespan and is how Harrison 2009 reports its headline numbers.
+- **Abstract `source_quote`s are copied from the PubMed abstract version; full-text quotes from PMC.** Phase 1 ingests PubMed abstracts, so eval quote-matching must target that exact wording. A quote transcribed from the publisher's PDF abstract can differ in punctuation or hyphenation from the PubMed record and will fail string comparison.
+- **Cohorts without a reported effect size are not separate records.** Interim analyses and unreported arms go in `notes`, not into `experiments[]`. A record whose `lifespan_effect` cannot be filled is noise in the eval denominator.
+- **`proposed_mechanism` carries the stated mechanism of action only.** Speculative mechanisms raised in the discussion go in `notes`. The field records what the authors claim to have shown, not what they hypothesise.
+- **Provenance — Harrison 2009:** labels drafted with AI assistance from the full text; values human-verified against the PDF and the PubMed record.
+
+### Blocked — two guidelines reference fields that do not exist in v0.2.0
+
+Recorded as written, but not yet actionable:
+
+- **`notes` does not exist.** Two guidelines above route content to it (unreported cohorts, speculative mechanisms). There is no `notes` field at either paper or experiment level, and every object is `additionalProperties: false`, so adding the key to a gold file makes it fail validation. Needs ratification: per-experiment `notes` (nullable string, flat — it is commentary, not an extracted claim) is the smaller change; paper-level would not fit the "unreported cohort" case, which is experiment-scoped.
+- **`proposed_mechanism` does not exist; the field is named `mechanism`.** Its description already says "Proposed mechanism as stated by the authors, not inferred", so the guideline matches the existing field's intent exactly. Either rename `mechanism` → `proposed_mechanism` (breaking, but no gold file uses it yet) or keep `mechanism` and treat the guideline as describing it. Not renamed unilaterally.
+
+### Version drift to watch
+
+- `scripts/validate_gold.py` hardcodes the version in its success message (`All N file(s) valid against schema v0.2.0`). The schema has no machine-readable version of its own — only the `schema_version` *instance* field — so this string must be bumped by hand on every schema release. Worth adding a root-level version keyword to the schema file if this drifts even once.
+- `data/gold/harrison2009.json` declares `schema_version: "0.1.0"`. Not updated here: `data/gold/` is human-only per CLAUDE.md. It still validates against v0.2.0 (the change is additive), but the human should bump it when filling the file.

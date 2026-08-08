@@ -1,5 +1,5 @@
 {
-  "schema_version": "0.2.0",
+  "schema_version": "0.1.0",
   "paper": {
     "doi": "TODO",
     "title": "TODO",
@@ -74,12 +74,6 @@
           "extracted_from": "TODO"
         },
         "median_change_pct": {
-          "value": null,
-          "source_quote": null,
-          "confidence": "TODO",
-          "extracted_from": "TODO"
-        },
-        "mean_change_pct": {
           "value": null,
           "source_quote": null,
           "confidence": "TODO",
@@ -165,12 +159,6 @@
           "extracted_from": "TODO"
         },
         "median_change_pct": {
-          "value": null,
-          "source_quote": null,
-          "confidence": "TODO",
-          "extracted_from": "TODO"
-        },
-        "mean_change_pct": {
           "value": null,
           "source_quote": null,
           "confidence": "TODO",

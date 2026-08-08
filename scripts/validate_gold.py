@@ -103,7 +103,7 @@ def main() -> int:
     if failed:
         print(f"{failed} of {total} file(s) failed validation.")
         return 1
-    print(f"All {total} file(s) valid against schema v0.1.0.")
+    print(f"All {total} file(s) valid against schema v0.2.0.")
     return 0
 
 

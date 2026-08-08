@@ -12,7 +12,7 @@
       "type": "string",
       "pattern": "^\\d+\\.\\d+\\.\\d+$",
       "description": "Semver of the schema this record was written against. Extraction is idempotent per (paper, schema_version).",
-      "examples": ["0.1.0"]
+      "examples": ["0.2.0"]
     },
 
     "paper": {
@@ -256,7 +256,11 @@
             "direction": { "$ref": "#/$defs/claim_direction" },
             "median_change_pct": {
               "allOf": [{ "$ref": "#/$defs/claim_number_nullable" }],
-              "description": "Percent change in MEDIAN lifespan vs control. Kept structurally distinct from max_change_pct: conflating the two is a known failure mode."
+              "description": "Percent change in MEDIAN lifespan vs control. Kept structurally distinct from mean_change_pct and max_change_pct: conflating them is a known failure mode. null if the paper reports only a mean — never substitute one statistic for the other."
+            },
+            "mean_change_pct": {
+              "allOf": [{ "$ref": "#/$defs/claim_number_nullable" }],
+              "description": "Percent change in MEAN lifespan (life expectancy) vs control. Added in v0.2.0: mouse papers such as Harrison 2009 report a mean/life-expectancy change with no pooled median percentage, which previously forced a choice between losing the number and misfiling it as median."
             },
             "max_change_pct": {
               "allOf": [{ "$ref": "#/$defs/claim_number_nullable" }],
