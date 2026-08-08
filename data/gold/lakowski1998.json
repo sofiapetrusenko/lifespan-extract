@@ -19,7 +19,7 @@
       "strain": {
         "value": "N2 background",
         "source_quote": "the wild type (N2) was always included as a control",
-        "confidence": "medium",
+        "confidence": "high",
         "extracted_from": "full_text"
       },
       "sex": {
@@ -93,8 +93,8 @@
         },
         "p_value": {
           "value": "< 0.0005",
-          "source_quote": "MQ594 eat-2(ad465) 50 25.1 6 0.7 129 ,0.0005",
-          "confidence": "medium",
+          "source_quote": "MQ594 eat-2(ad465): n=50, mean 25.1 +/- 0.7 days, +29% vs wild type, P < 0.0005 (Table 1, Experiment 2)",
+          "confidence": "high",
           "extracted_from": "full_text"
         }
       },
