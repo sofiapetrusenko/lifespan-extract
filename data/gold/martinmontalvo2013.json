@@ -1,0 +1,196 @@
+{
+  "schema_version": "0.2.1",
+  "paper": {
+    "doi": "10.1038/ncomms3192",
+    "title": "Metformin improves healthspan and lifespan in mice",
+    "year": 2013,
+    "source": "pubmed",
+    "pmid": "23900241"
+  },
+  "experiments": [
+    {
+      "experiment_id": "martinmontalvo2013-mmusculus-metformin-low-dose",
+      "organism": {
+        "value": "M. musculus",
+        "source_quote": "Here we show that long-term treatment with metformin (0.1% w/w in diet) starting at middle age extends healthspan and lifespan in male mice, while a higher dose (1% w/w) was toxic.",
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "strain": {
+        "value": "C57BL/6",
+        "source_quote": "We determined the long-term effects of two doses of metformin in male C57BL/6 mice.",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "sex": {
+        "value": "male",
+        "source_quote": "Here we show that long-term treatment with metformin (0.1% w/w in diet) starting at middle age extends healthspan and lifespan in male mice, while a higher dose (1% w/w) was toxic.",
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "sample_size": {
+        "value": 64,
+        "source_quote": "n = 64 for metformin 0.1% group and n = 83 for their untreated counterparts",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "intervention": {
+        "type": {
+          "value": "pharmacological",
+          "source_quote": "Metformin is a drug commonly prescribed to treat patients with type 2 diabetes.",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "agent": {
+          "value": "metformin",
+          "source_quote": "long-term treatment with metformin (0.1% w/w in diet) starting at middle age extends healthspan and lifespan in male mice",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "dose": {
+          "value": "0.1% (w/w) in diet",
+          "source_quote": "The first dose consisted of 0.1% metformin (w/w) supplemented in diet, which yielded a concentration of 0.45 +/- 0.09 mM in serum",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "age_at_start": {
+          "value": "54 weeks",
+          "source_quote": "The arrows at 54 weeks indicate the age at which metformin treatment was initiated.",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        }
+      },
+      "mechanism": {
+        "value": "AMPK activation and increased antioxidant protection",
+        "source_quote": "At a molecular level, metformin increases AMP-activated protein kinase activity and increases antioxidant protection, resulting in reductions in both oxidative damage accumulation and chronic inflammation.",
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "lifespan_effect": {
+        "direction": {
+          "value": "increase",
+          "source_quote": "Diet supplementation with 0.1% metformin led to a 5.83% extension of mean lifespan (Fig. 1a)",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "median_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "mean_change_pct": {
+          "value": 5.83,
+          "source_quote": "Diet supplementation with 0.1% metformin led to a 5.83% extension of mean lifespan (Fig. 1a)",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "max_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "p_value": {
+          "value": "0.02",
+          "source_quote": "chi2 = 5.46 and p = 0.02 in Gehan-Breslow survival test",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        }
+      },
+      "notes": "Low-dose arm of a two-dose study; the high-dose (1% w/w) arm is recorded as a separate experiment with the opposite direction. A third longevity cohort in a different strain (B6C3F1 males, same 0.1% dose) gave a 4.15% mean extension that was not statistically significant (p = 0.064) and is not recorded as a separate experiment. Serum metformin 0.45 +/- 0.09 mM. Treatment lifelong from 54 weeks. Healthspan endpoints (rotarod, treadmill, open field, cataracts) also improved."
+    },
+    {
+      "experiment_id": "martinmontalvo2013-mmusculus-metformin-high-dose",
+      "organism": {
+        "value": "M. musculus",
+        "source_quote": "Here we show that long-term treatment with metformin (0.1% w/w in diet) starting at middle age extends healthspan and lifespan in male mice, while a higher dose (1% w/w) was toxic.",
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "strain": {
+        "value": "C57BL/6",
+        "source_quote": "We determined the long-term effects of two doses of metformin in male C57BL/6 mice.",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "sex": {
+        "value": "male",
+        "source_quote": "We determined the long-term effects of two doses of metformin in male C57BL/6 mice.",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "sample_size": {
+        "value": 90,
+        "source_quote": "n = 90 for metformin 1% group and n = 88 for their untreated counterparts",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "intervention": {
+        "type": {
+          "value": "pharmacological",
+          "source_quote": "Metformin is a drug commonly prescribed to treat patients with type 2 diabetes.",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "agent": {
+          "value": "metformin",
+          "source_quote": "a higher dose (1% w/w) was toxic",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "dose": {
+          "value": "1% (w/w) in diet",
+          "source_quote": "The second dose (1% w/w) yielded a concentration of 5.03 +/- 0.87 mM in serum and 3.67 +/- 0.32 nmoles.mg-1 protein in the liver",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "age_at_start": {
+          "value": "54 weeks",
+          "source_quote": "The arrows at 54 weeks indicate the age at which metformin treatment was initiated.",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        }
+      },
+      "mechanism": {
+        "value": null,
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "lifespan_effect": {
+        "direction": {
+          "value": "decrease",
+          "source_quote": "a higher concentration of the drug (1% w/w) was toxic and significantly shortened mean lifespan of C57BL/6 mice by 14.4% (Fig. 1b), likely due to renal failure",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "median_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "mean_change_pct": {
+          "value": -14.4,
+          "source_quote": "a higher concentration of the drug (1% w/w) was toxic and significantly shortened mean lifespan of C57BL/6 mice by 14.4%",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "max_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "p_value": {
+          "value": "< 0.001",
+          "source_quote": "chi2 = 51.70 and P < 0.001 in Gehan-Breslow survival test",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        }
+      },
+      "notes": "High-dose arm: toxic, opposite direction to the 0.1% arm in the same paper. Authors attribute the shortened lifespan to renal failure; mechanism left null because this is a cause of toxicity, not a stated mechanism of action of the intervention on ageing. Serum metformin 5.03 +/- 0.87 mM, roughly ten-fold the low-dose exposure. Same start age (54 weeks) and strain as the low-dose arm."
+    }
+  ]
+}
