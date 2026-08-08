@@ -1,0 +1,42 @@
+{
+  "schema_version": "0.1.0",
+  "paper": {
+    "doi": "10.1038/nature08221",
+    "title": "Rapamycin fed late in life extends lifespan in genetically heterogeneous mice",
+    "year": 2009,
+    "source": "pubmed"
+  },
+  "experiments": [
+    {
+      "experiment_id": "harrison2009-mmusculus-rapamycin",
+      "organism": {
+        "value": "M. musculus",
+        "source_quote": "Here we report that rapamycin, an inhibitor of the mTOR pathway, extends median and maximal lifespan of both male and female mice when fed beginning at 600 days of age.",
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "intervention": {
+        "type": {
+          "value": "pharmacological",
+          "source_quote": "Here we report that rapamycin, an inhibitor of the mTOR pathway, extends median and maximal lifespan of both male and female mice when fed beginning at 600 days of age.",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "agent": {
+          "value": "rapamycin",
+          "source_quote": "Here we report that rapamycin, an inhibitor of the mTOR pathway, extends median and maximal lifespan of both male and female mice when fed beginning at 600 days of age.",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        }
+      },
+      "lifespan_effect": {
+        "direction": {
+          "value": "increase",
+          "source_quote": "Here we report that rapamycin, an inhibitor of the mTOR pathway, extends median and maximal lifespan of both male and female mice when fed beginning at 600 days of age.",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        }
+      }
+    }
+  ]
+}

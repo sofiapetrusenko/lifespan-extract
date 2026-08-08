@@ -1,0 +1,271 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/sofiapetrusenko/lifespan-extract/blob/main/schema/experiment.schema.json",
+  "title": "lifespan-extract paper record",
+  "description": "One file = one paper. A paper contributes one experiment entry per (organism, intervention) pair, so multi-organism papers yield multiple entries in experiments[]. Claim fields carry provenance; paper metadata is flat because it comes from the ingest API rather than the prose.",
+  "type": "object",
+  "required": ["schema_version", "paper", "experiments"],
+  "additionalProperties": false,
+
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semver of the schema this record was written against. Extraction is idempotent per (paper, schema_version).",
+      "examples": ["0.1.0"]
+    },
+
+    "paper": {
+      "type": "object",
+      "description": "Bibliographic identity. Flat values: these come from PubMed/bioRxiv metadata, not from extracted prose, so they carry no source_quote.",
+      "required": ["doi", "title", "year", "source"],
+      "additionalProperties": false,
+      "properties": {
+        "doi": {
+          "type": "string",
+          "pattern": "^10\\.\\d{4,9}/\\S+$",
+          "description": "Canonical DOI, lowercase. Dedup key for preprint/publication pairs.",
+          "examples": ["10.1038/nature08221"]
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "year": {
+          "type": "integer",
+          "minimum": 1900,
+          "maximum": 2100,
+          "description": "Publication year (preprint posting year for unpublished preprints)."
+        },
+        "source": {
+          "enum": ["pubmed", "biorxiv"],
+          "description": "Ingest origin. PMC open-access full text is not a separate source: it is source=pubmed with extracted_from=full_text on the claims. Phase 1 clients conform to this enum, not the reverse."
+        },
+        "pmid": {
+          "type": ["string", "null"],
+          "pattern": "^\\d+$",
+          "description": "PubMed ID where one exists. null for preprints not yet indexed."
+        }
+      }
+    },
+
+    "experiments": {
+      "type": "array",
+      "minItems": 1,
+      "description": "One entry per (organism, intervention) pair reported in the paper.",
+      "items": { "$ref": "#/$defs/experiment" }
+    }
+  },
+
+  "$defs": {
+    "confidence": {
+      "enum": ["high", "medium", "low"],
+      "description": "Categorical, not numeric: the gold set is labeled by a human, and humans cannot produce calibrated probabilities. Eval comparison is exact-match on the category."
+    },
+
+    "extracted_from": {
+      "enum": ["abstract", "full_text"],
+      "description": "Which text the claim was read from. Abstract-only extractions are expected to yield not_reported more often, especially for sex."
+    },
+
+    "provenance": {
+      "type": "object",
+      "description": "Provenance keys shared by every claim wrapper. Composed via allOf; wrappers add their own typed `value`.",
+      "required": ["source_quote", "confidence", "extracted_from"],
+      "properties": {
+        "source_quote": {
+          "type": ["string", "null"],
+          "minLength": 1,
+          "description": "Verbatim sentence from the paper supporting the value. null only when there is nothing to quote, i.e. the value is null or not_reported."
+        },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "extracted_from": { "$ref": "#/$defs/extracted_from" }
+      }
+    },
+
+    "claim_organism": {
+      "allOf": [{ "$ref": "#/$defs/provenance" }],
+      "required": ["value"],
+      "unevaluatedProperties": false,
+      "properties": {
+        "value": {
+          "enum": ["C. elegans", "M. musculus", "other"],
+          "description": "MVP filters cover the two named organisms. `other` exists so gold-set papers outside scope (e.g. the Colman 2009 / Mattison 2012 macaque pair) can be labeled truthfully rather than forced into a wrong bucket."
+        }
+      }
+    },
+
+    "claim_sex": {
+      "allOf": [{ "$ref": "#/$defs/provenance" }],
+      "required": ["value"],
+      "unevaluatedProperties": false,
+      "properties": {
+        "value": {
+          "enum": ["male", "female", "mixed", "hermaphrodite", "not_reported"],
+          "description": "not_reported is a real answer, not a gap. Sex is often buried in methods and must come back not_reported from abstract-only extraction."
+        }
+      }
+    },
+
+    "claim_intervention_type": {
+      "allOf": [{ "$ref": "#/$defs/provenance" }],
+      "required": ["value"],
+      "unevaluatedProperties": false,
+      "properties": {
+        "value": {
+          "enum": ["pharmacological", "genetic", "dietary", "other"]
+        }
+      }
+    },
+
+    "claim_direction": {
+      "allOf": [{ "$ref": "#/$defs/provenance" }],
+      "required": ["value"],
+      "unevaluatedProperties": false,
+      "properties": {
+        "value": {
+          "enum": ["increase", "decrease", "no_effect"],
+          "description": "no_effect must survive evasive phrasing (\"did not significantly alter\") without being coerced into a weak increase."
+        }
+      }
+    },
+
+    "claim_string": {
+      "allOf": [{ "$ref": "#/$defs/provenance" }],
+      "required": ["value"],
+      "unevaluatedProperties": false,
+      "properties": {
+        "value": { "type": "string", "minLength": 1 }
+      }
+    },
+
+    "claim_string_nullable": {
+      "allOf": [{ "$ref": "#/$defs/provenance" }],
+      "required": ["value"],
+      "unevaluatedProperties": false,
+      "properties": {
+        "value": {
+          "type": ["string", "null"],
+          "minLength": 1,
+          "description": "Free text. null means not reported. Open-vocabulary fields use null rather than the string \"not_reported\" so they never collide with a real value."
+        }
+      }
+    },
+
+    "claim_number_nullable": {
+      "allOf": [{ "$ref": "#/$defs/provenance" }],
+      "required": ["value"],
+      "unevaluatedProperties": false,
+      "properties": {
+        "value": {
+          "type": ["number", "null"],
+          "description": "null means not reported. Never a sentinel number: -1 is a legitimate percentage change."
+        }
+      }
+    },
+
+    "claim_integer_nullable": {
+      "allOf": [{ "$ref": "#/$defs/provenance" }],
+      "required": ["value"],
+      "unevaluatedProperties": false,
+      "properties": {
+        "value": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "null means not reported."
+        }
+      }
+    },
+
+    "claim_p_value": {
+      "allOf": [{ "$ref": "#/$defs/provenance" }],
+      "required": ["value"],
+      "unevaluatedProperties": false,
+      "properties": {
+        "value": {
+          "type": ["string", "null"],
+          "pattern": "^(<|>|<=|>=|=|~)?\\s*\\d+(\\.\\d+)?([eE][-+]?\\d+)?$",
+          "description": "String, because papers report thresholds rather than numbers: \"< 0.001\" is not parseable as a float without losing the inequality. null means not reported; a bare \"n.s.\" is recorded as null with lifespan_effect.direction = no_effect.",
+          "examples": ["< 0.001", "0.03", "1.2e-4"]
+        }
+      }
+    },
+
+    "experiment": {
+      "type": "object",
+      "description": "One (organism, intervention) pair. Required fields are the ones that make a record meaningful at all; everything else is optional and nullable.",
+      "required": ["experiment_id", "organism", "intervention", "lifespan_effect"],
+      "additionalProperties": false,
+      "properties": {
+        "experiment_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)+$",
+          "description": "Stable identity for the API and for eval alignment. Convention: <first-author-year>-<organism-slug>-<agent-slug>[-<n>], all lowercase ASCII, hyphen-separated; the trailing -<n> disambiguates repeat (organism, agent) pairs within one paper. Assigned by hand in data/gold/; generated deterministically from the same convention in Phase 2. Flat, not a claim wrapper: it is derived identity, not something quoted from the paper.",
+          "examples": [
+            "harrison2009-mmusculus-rapamycin",
+            "strong2016-mmusculus-17-alpha-estradiol",
+            "eisenberg2009-celegans-spermidine"
+          ]
+        },
+
+        "organism": { "$ref": "#/$defs/claim_organism" },
+
+        "strain": {
+          "allOf": [{ "$ref": "#/$defs/claim_string" }],
+          "description": "Open vocabulary (N2, UM-HET3, C57BL/6). Uses the literal string \"not_reported\" when absent, matching the categorical convention for strain-like fields.",
+          "examples": ["UM-HET3", "N2", "not_reported"]
+        },
+
+        "sex": { "$ref": "#/$defs/claim_sex" },
+
+        "sample_size": {
+          "allOf": [{ "$ref": "#/$defs/claim_integer_nullable" }],
+          "description": "Number of animals in the treated cohort, where reported."
+        },
+
+        "intervention": {
+          "type": "object",
+          "required": ["type", "agent"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "$ref": "#/$defs/claim_intervention_type" },
+            "agent": {
+              "allOf": [{ "$ref": "#/$defs/claim_string" }],
+              "description": "Name of the compound, gene, or regimen as reported. Normalization is a later phase.",
+              "examples": ["rapamycin", "metformin", "spermidine", "caloric restriction"]
+            },
+            "dose": { "$ref": "#/$defs/claim_string_nullable" },
+            "age_at_start": {
+              "allOf": [{ "$ref": "#/$defs/claim_string_nullable" }],
+              "description": "As reported, units included (\"600 days\", \"day 1 of adulthood\"). Free text in v0: units are not consistent enough across organisms to normalize yet."
+            }
+          }
+        },
+
+        "mechanism": {
+          "allOf": [{ "$ref": "#/$defs/claim_string_nullable" }],
+          "description": "Proposed mechanism as stated by the authors, not inferred. Backs the ?mechanism= API filter.",
+          "examples": ["autophagy", "mTOR inhibition"]
+        },
+
+        "lifespan_effect": {
+          "type": "object",
+          "required": ["direction"],
+          "additionalProperties": false,
+          "properties": {
+            "direction": { "$ref": "#/$defs/claim_direction" },
+            "median_change_pct": {
+              "allOf": [{ "$ref": "#/$defs/claim_number_nullable" }],
+              "description": "Percent change in MEDIAN lifespan vs control. Kept structurally distinct from max_change_pct: conflating the two is a known failure mode."
+            },
+            "max_change_pct": {
+              "allOf": [{ "$ref": "#/$defs/claim_number_nullable" }],
+              "description": "Percent change in MAXIMUM lifespan vs control."
+            },
+            "p_value": { "$ref": "#/$defs/claim_p_value" }
+          }
+        }
+      }
+    }
+  }
+}
