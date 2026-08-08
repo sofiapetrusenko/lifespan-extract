@@ -1,0 +1,104 @@
+{
+  "schema_version": "0.2.1",
+  "paper": {
+    "doi": "10.1073/pnas.95.22.13091",
+    "title": "The genetics of caloric restriction in Caenorhabditis elegans",
+    "year": 1998,
+    "source": "pubmed",
+    "pmid": "9789046"
+  },
+  "experiments": [
+    {
+      "experiment_id": "lakowski1998-celegans-eat-2",
+      "organism": {
+        "value": "C. elegans",
+        "source_quote": "To understand better how caloric restriction lengthens life span, we used genetic methods and criteria to investigate its mechanism of action in the nematode Caenorhabditis elegans.",
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "strain": {
+        "value": "N2 background",
+        "source_quote": "the wild type (N2) was always included as a control",
+        "confidence": "medium",
+        "extracted_from": "full_text"
+      },
+      "sex": {
+        "value": "hermaphrodite",
+        "source_quote": "experiments were begun by allowing adult hermaphrodites to lay eggs for a limited time (4-6 hr)",
+        "confidence": "medium",
+        "extracted_from": "full_text"
+      },
+      "sample_size": {
+        "value": 50,
+        "source_quote": "Experiments were started with 50 experimental worms per genotype (10 per plate) and the wild type (N2) was always included as a control.",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "intervention": {
+        "type": {
+          "value": "genetic",
+          "source_quote": "Mutations in many genes (eat genes) result in partial starvation of the worm by disrupting the function of the pharynx, the feeding organ.",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "agent": {
+          "value": "eat-2 mutation (reference allele ad465)",
+          "source_quote": "the strain DA465 eat-2(ad465) was used without backcrosses in experiments testing the interaction of eat-2 with daf-16, daf-2, and clk-1",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "dose": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "age_at_start": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "full_text"
+        }
+      },
+      "mechanism": {
+        "value": "caloric restriction (reduced food intake)",
+        "source_quote": "This observation, along with the other evidence presented, indicates that eat genes indeed lengthen life span by reducing food intake and presumably caloric intake.",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "lifespan_effect": {
+        "direction": {
+          "value": "increase",
+          "source_quote": "We found that most eat mutations significantly lengthen life span (by up to 50%).",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "median_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "mean_change_pct": {
+          "value": 47,
+          "source_quote": "eat-2(ad465) has been determined seven times, and in every trial mutants live substantially longer than the wild type, with an average lengthening of life span of 47% over the wild type",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "max_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "p_value": {
+          "value": "< 0.0005",
+          "source_quote": "MQ594 eat-2(ad465) 50 25.1 6 0.7 129 ,0.0005",
+          "confidence": "medium",
+          "extracted_from": "full_text"
+        }
+      },
+      "notes": "Genetic model of caloric restriction: eat-2 disrupts pharyngeal pumping, causing partial starvation; recorded mechanism is CR as stated by the authors. Scope decision: one record for the headline intervention (eat-2, reference allele ad465, mean +47% over 7 trials); other significant eat genes (eat-1, -3, -6, -13, -18) and allele-level variation (ad453 +36%, ad1113 +46%, ad1116 +57% in Experiment 2, where ad465 showed +29%) not recorded as separate experiments. p_value taken from Table 1 for ad465 (Experiment 2), a single trial, while mean_change_pct is the seven-trial average. Maximum lifespan also lengthened per text but no percentage given. Cultured at 20C. Epistasis results (daf-16-independent; eat-2;daf-2 additive; eat-2;clk-1 non-additive) support CR being distinct from insulin/dauer pathway."
+    }
+  ]
+}
