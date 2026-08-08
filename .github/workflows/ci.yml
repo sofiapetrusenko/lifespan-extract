@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install ruff pytest jsonschema
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Validate gold set against schema
+        run: |
+          python - <<'EOF'
+          import json, sys
+          from pathlib import Path
+
+          schema_path = Path("schema/experiment.schema.json")
+          gold_dir = Path("data/gold")
+
+          if not schema_path.exists():
+              print("schema not present yet — skipping gold validation")
+              sys.exit(0)
+
+          from jsonschema import Draft202012Validator
+          schema = json.loads(schema_path.read_text())
+          validator = Draft202012Validator(schema)
+
+          gold_files = sorted(gold_dir.glob("*.json")) if gold_dir.exists() else []
+          if not gold_files:
+              print("no gold files yet — skipping")
+              sys.exit(0)
+
+          failed = False
+          for f in gold_files:
+              errors = list(validator.iter_errors(json.loads(f.read_text())))
+              if errors:
+                  failed = True
+                  print(f"FAIL {f}")
+                  for e in errors:
+                      print(f"  - {'/'.join(map(str, e.path)) or '<root>'}: {e.message}")
+              else:
+                  print(f"OK   {f}")
+          sys.exit(1 if failed else 0)
+          EOF
+
+      - name: Tests
+        run: |
+          # exit code 5 = no tests collected; acceptable until Phase 2
+          pytest || [ $? -eq 5 ]
