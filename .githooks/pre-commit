@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+# Blocking pre-commit check: lint + gold-set validation.
+#
+# Tracked in the repo rather than living in .git/hooks, so it is shared and
+# reviewable. Enable it once per clone:
+#
+#     git config core.hooksPath .githooks
+#
+# Runs the same two commands CI runs, against the same venv, so a commit that
+# passes here should not fail CI on lint or schema grounds.
+#
+# Deliberate bypass: git commit --no-verify
+
+set -uo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)" || exit 1
+cd "$REPO_ROOT" || exit 1
+
+# Interpreter resolution is the entire point of this block. A hook inherits the
+# environment of whatever invoked git: a terminal may expose anaconda's python,
+# a GUI client typically exposes /usr/bin/python3 (3.9, no project deps), and
+# scripts/validate_gold.py has a `#!/usr/bin/env python3` shebang that would
+# resolve to either. Only .venv is guaranteed to hold requirements-dev.txt, so
+# every command below names its interpreter by absolute path and nothing here
+# relies on PATH lookup or on a script's shebang.
+VENV_PY="$REPO_ROOT/.venv/bin/python"
+VENV_RUFF="$REPO_ROOT/.venv/bin/ruff"
+
+# PYTHONHOME points an explicitly-chosen interpreter at a foreign stdlib and
+# kills .venv/bin/python outright; PYTHONPATH can shadow its site-packages.
+unset PYTHONHOME PYTHONPATH
+
+# Naming the interpreter is not sufficient on Apple silicon. .venv/bin/python is
+# a universal binary: it starts in the *parent process's* architecture, so an
+# x86_64 parent (a Rosetta shell, anaconda's x86_64 tooling, some GUI git
+# clients) launches it as x86_64, and jsonschema's arm64-only native dependency
+# then fails to load with an ImportError reading "not installed". Pin execution
+# to the host architecture, which is what pip built the wheels for.
+PY=("$VENV_PY")
+RUFF=("$VENV_RUFF")
+if [ "$(uname -s)" = "Darwin" ] && command -v arch >/dev/null 2>&1; then
+    # `uname -m` reports the *process* architecture, so under Rosetta it says
+    # x86_64 on an arm64 machine and would pin to the wrong one. hw.optional.arm64
+    # reports the hardware and is not translated.
+    if [ "$(sysctl -n hw.optional.arm64 2>/dev/null)" = "1" ]; then
+        HOST_ARCH="arm64"
+    else
+        HOST_ARCH="$(uname -m)"
+    fi
+    PY=(arch "-$HOST_ARCH" "$VENV_PY")
+    RUFF=(arch "-$HOST_ARCH" "$VENV_RUFF")
+fi
+
+# Two distinct failures, two distinct messages: no venv at all is a setup step,
+# a venv without deps is an install step. Probe the deps rather than inferring
+# them from the presence of a directory.
+if [ ! -x "$VENV_PY" ]; then
+    echo "pre-commit: no project venv found at .venv/"
+    echo "  expected interpreter: $VENV_PY"
+    echo "  python3.11 -m venv .venv"
+    echo "  .venv/bin/pip install -r requirements-dev.txt"
+    exit 1
+fi
+
+# Keep the probe's own error: an unimportable package is not always an absent
+# one. A native extension built for the wrong architecture raises ImportError
+# too, and "missing: jsonschema" would send you to reinstall something that is
+# already sitting on disk.
+probe_err="$("${PY[@]}" -c 'import jsonschema' 2>&1)"
+probe_rc=$?
+
+missing=""
+[ "$probe_rc" -eq 0 ] || missing="jsonschema"
+[ -x "$VENV_RUFF" ] || missing="${missing:+$missing }ruff"
+
+if [ -n "$missing" ]; then
+    echo "pre-commit: .venv cannot provide: $missing"
+    echo "  interpreter: $VENV_PY  ($("${PY[@]}" --version 2>&1))"
+    if [ -n "$probe_err" ]; then
+        echo "  import error:"
+        echo "$probe_err" | tail -3 | sed 's/^/    /'
+    fi
+    echo "  .venv/bin/pip install -r requirements-dev.txt"
+    exit 1
+fi
+
+status=0
+
+# Both checks always run, even after a failure: seeing every problem at once
+# beats fixing them one commit attempt at a time.
+echo "pre-commit: ruff check .   [$VENV_RUFF]"
+"${RUFF[@]}" check . || status=1
+
+echo "pre-commit: validate_gold  [$VENV_PY]"
+"${PY[@]}" scripts/validate_gold.py || status=1
+
+if [ "$status" -ne 0 ]; then
+    echo
+    echo "pre-commit: FAILED — commit blocked."
+    echo "Fix the errors above, or bypass deliberately: git commit --no-verify"
+fi
+
+exit "$status"

@@ -18,8 +18,18 @@ from pathlib import Path
 
 try:
     from jsonschema import Draft202012Validator
-except ImportError:
-    sys.exit("jsonschema is not installed. Run: pip install jsonschema")
+except ImportError as exc:
+    # Never claim "not installed". That is usually false and it hides the real
+    # reason: the wrong interpreter was picked up from PATH or from this file's
+    # shebang, or the package is present but its native extension was built for
+    # a different architecture. Both raise ImportError; only the message tells
+    # them apart, so the message is reproduced verbatim.
+    sys.exit(
+        f"cannot import jsonschema using {sys.executable}\n"
+        f"  reason: {exc}\n"
+        "  Run via the project venv:  .venv/bin/python scripts/validate_gold.py\n"
+        "  Or reinstall it there:     .venv/bin/pip install -r requirements-dev.txt"
+    )
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCHEMA_PATH = REPO_ROOT / "schema" / "experiment.schema.json"
