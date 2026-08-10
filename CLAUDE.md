@@ -33,3 +33,8 @@
 ## Communication
 - When PLAN.md is ambiguous, ask the human rather than deciding silently. List questions at the end of the session output.
 - Commit messages are written by the human. Stage changes; do not commit unless explicitly told to.
+
+## Environment
+- All Python tooling runs from the project venv: `.venv/bin/ruff`, `.venv/bin/pytest`.
+  A bare `ruff` is not on PATH; a bare `pytest` resolves to Anaconda's 3.9 install
+  and dies on missing deps — a real environment error that looks like a test failure.
