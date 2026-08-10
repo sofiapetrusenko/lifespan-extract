@@ -10,6 +10,12 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 
+# Derived data. The abstract cache is refetchable from PubMed by PMID, so it is
+# a local speed-up, not a record. Drafts are working files on their way into
+# data/gold/ by hand; only the finished, reviewed file belongs in the repo.
+data/.abstract_cache/
+data/drafts/
+
 # OS
 .DS_Store
 .claude/settings.local.json

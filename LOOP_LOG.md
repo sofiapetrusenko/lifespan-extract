@@ -1,0 +1,4 @@
+iter 1 | REQUIRED: 4 | ingest/{pubmed,biorxiv,db,http,cli,dedup,models,errors}.py + 99 tests; reviewer flagged PubmedBookArticle silent drop, cross-run preprint->publication duplicate, unvalidated `published` DOI, dead self-throttle
+iter 2 | REQUIRED: 2 | fixed book-record drop, published-DOI validation, dead throttle; cross-run dedup documented as accepted limitation. Reviewer: efetch count check aborts on DeleteCitation; preprint->publication test does not hit the mechanism it claims to pin
+iter 3 | REQUIRED: 0 | set-based PMID accounting w/ DeleteCitation, cross-run dedup tests split to hit real mechanism, password test off the socket -- APPROVE
+iter 4 | REQUIRED: 0 | human-requested SUGGESTED follow-up: DEFAULT_RETRY_POLICY constants pinned, biorxiv non-string doi/published -> windowed ResponseFormatError, two overclaiming docstrings corrected
