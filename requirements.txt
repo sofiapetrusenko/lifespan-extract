@@ -1,0 +1,21 @@
+# Runtime dependencies. Dev tooling lives in requirements-dev.txt.
+#
+# Install into the project venv, never a global or conda env:
+#   .venv/bin/pip install -r requirements.txt
+
+# HTTP client for both source APIs. Chosen over requests for its pluggable
+# transport: tests stub the network with httpx.MockTransport instead of
+# monkeypatching module internals.
+httpx>=0.27
+
+# ORM and table definitions, per PLAN.md's stated stack.
+sqlmodel>=0.0.22
+
+# PostgreSQL driver for DATABASE_URL. psycopg 3, so URLs must name it
+# explicitly: postgresql+psycopg://...
+psycopg[binary]>=3.1
+
+# XML parser for PubMed efetch, which has no JSON endpoint that returns
+# abstracts. Used instead of stdlib ElementTree because the payload is remote
+# input and ElementTree expands entity bombs.
+defusedxml>=0.7
