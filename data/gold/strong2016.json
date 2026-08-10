@@ -1,0 +1,840 @@
+{
+  "schema_version": "0.2.1",
+  "paper": {
+    "doi": "10.1111/acel.12496",
+    "title": "Longer lifespan in male mice treated with a weakly estrogenic agonist, an antioxidant, an alpha-glucosidase inhibitor or a Nrf2-inducer",
+    "year": 2016,
+    "source": "pubmed",
+    "pmid": "27312235"
+  },
+  "experiments": [
+    {
+      "experiment_id": "strong2016-mmusculus-17-alpha-estradiol",
+      "organism": {
+        "value": "M. musculus",
+        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "strain": {
+        "value": "UM-HET3 (genetically heterogeneous)",
+        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "sex": {
+        "value": "male",
+        "source_quote": "17aE2 treatment had no significant effect on female survival, either in the pooled data or at any individual site",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "sample_size": {
+        "value": 144,
+        "source_quote": "17aE2 144 925 19 0.000 (Table 1, males pooled across sites)",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "intervention": {
+        "type": {
+          "value": "pharmacological",
+          "source_quote": "17-a-estradiol (17aE2) is an optical isomer of 17-b-estradiol with reduced affinity for estrogen receptors.",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "agent": {
+          "value": "17-alpha-estradiol",
+          "source_quote": "Beginning at 10 months of age, male and female mice were fed chow containing 17aE2 at a concentration of 14.4 ppm",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "dose": {
+          "value": "14.4 ppm in food",
+          "source_quote": "Beginning at 10 months of age, male and female mice were fed chow containing 17aE2 at a concentration of 14.4 ppm (17aE2).",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "age_at_start": {
+          "value": "10 months",
+          "source_quote": "Beginning at 10 months of age, male and female mice were fed chow containing 17aE2 at a concentration of 14.4 ppm (17aE2).",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        }
+      },
+      "mechanism": {
+        "value": null,
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "lifespan_effect": {
+        "direction": {
+          "value": "increase",
+          "source_quote": "median lifespan increased 19% in male mice, calculated from data pooled from the three sites (P < 0.001)",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "median_change_pct": {
+          "value": 19,
+          "source_quote": "median lifespan increased 19% in male mice, calculated from data pooled from the three sites (P < 0.001)",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "mean_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "max_change_pct": {
+          "value": 12,
+          "source_quote": "The age at which 90% of the mice had died increased on average by 12%",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "p_value": {
+          "value": "< 0.001",
+          "source_quote": "median lifespan increased 19% in male mice, calculated from data pooled from the three sites (P < 0.001)",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        }
+      },
+      "notes": "Male-specific effect: no significant effect on female survival at 14.4 ppm (pooled or per site); female arm not recorded separately because the female result is a null at every endpoint. Site-specific median increases 26/9/23% (TJL/UM/UT), all P < 0.003. Authors note the mechanism of male specificity is unknown; 14.4 ppm dose was uterotrophic in ovariectomized mice, so female null is not due to lack of bioavailability. Sex quote documents the male-only nature of the effect."
+    },
+    {
+      "experiment_id": "strong2016-mmusculus-ndga",
+      "organism": {
+        "value": "M. musculus",
+        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "strain": {
+        "value": "UM-HET3 (genetically heterogeneous)",
+        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "sex": {
+        "value": "male",
+        "source_quote": "NDGA increased survival of male mice at each of the doses tested, with increases in median lifespan at each dose",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "sample_size": {
+        "value": 133,
+        "source_quote": "NDGA (2500 133 851 10 0.015 (Table 2, males pooled across sites)",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "intervention": {
+        "type": {
+          "value": "pharmacological",
+          "source_quote": "Nordihydroguaiaretic (NDGA) is produced by the leaves of the creosote bush (Larrea tridentata). It is both a lipoxygenase inhibitor and potent antioxidant.",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "agent": {
+          "value": "nordihydroguaiaretic acid (NDGA)",
+          "source_quote": "we tested the effects of NDGA at 800, 2500, and 5000 ppm in males and at 5000 ppm in females",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "dose": {
+          "value": "2500 ppm (reference dose; 800 and 5000 ppm also tested)",
+          "source_quote": "we tested the effects of NDGA at 800, 2500, and 5000 ppm in males and at 5000 ppm in females",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "age_at_start": {
+          "value": "4 months",
+          "source_quote": "NDGA was purchased from Cayman Chemicals (Ann Arbor, MI, USA) and mixed at a concentration of either 800, 2500, or 5000 ppm and fed to male mice beginning at 4 months of age.",
+          "confidence": "medium",
+          "extracted_from": "full_text"
+        }
+      },
+      "mechanism": {
+        "value": null,
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "lifespan_effect": {
+        "direction": {
+          "value": "increase",
+          "source_quote": "NDGA increased survival of male mice at each of the doses tested, with increases in median lifespan at each dose",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "median_change_pct": {
+          "value": 10,
+          "source_quote": "NDGA (2500): n=133, median 851 days, +10%, P=0.015 (Table 2, males pooled)",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "mean_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "max_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "p_value": {
+          "value": "0.015",
+          "source_quote": "NDGA (2500): n=133, median 851 days, +10%, P=0.015 (Table 2, males pooled)",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        }
+      },
+      "notes": "One record for the reference dose (2500 ppm); all three doses significant in males (800 ppm +6% P=0.023, 2500 ppm +10% P=0.015, 5000 ppm +9% P=0.003). No effect on maximal lifespan at any dose in males, and no effect in females at 5000 ppm despite blood levels matching males at 2500 ppm - max_change_pct left null because no significant max effect exists. Internal inconsistency in the paper: the introduction says treatment started at 6 months, the methods say 4 months; methods value recorded with medium confidence. Good extractor stress case."
+    },
+    {
+      "experiment_id": "strong2016-mmusculus-protandim",
+      "organism": {
+        "value": "M. musculus",
+        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "strain": {
+        "value": "UM-HET3 (genetically heterogeneous)",
+        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "sex": {
+        "value": "male",
+        "source_quote": "There were no significant effects of Prot on median or maximal survival of females in the pooled data",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "sample_size": {
+        "value": 155,
+        "source_quote": "Prot 155 834 7 0.012 (Table 1, males pooled across sites)",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "intervention": {
+        "type": {
+          "value": "pharmacological",
+          "source_quote": "Protandim (Prot) is a mixture of five botanical extracts, including bacosides, silymarin, withaferin A, epigallocatechin-3-gallate, and curcumin.",
+          "confidence": "medium",
+          "extracted_from": "full_text"
+        },
+        "agent": {
+          "value": "Protandim",
+          "source_quote": "Protandim (Prot) is a mixture of five botanical extracts, including bacosides, silymarin, withaferin A, epigallocatechin-3-gallate, and curcumin.",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "dose": {
+          "value": "600 ppm from 10 months, increased to 1200 ppm from 17 months",
+          "source_quote": "The dose of Prot was increased from 600 to 1200 ppm when the mice reached 17 months of age",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "age_at_start": {
+          "value": "10 months",
+          "source_quote": "Beginning at 10 months of age, one group of mice was fed chow containing Prot at 600 ppm",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        }
+      },
+      "mechanism": {
+        "value": "Nrf2 activation",
+        "source_quote": "The finding that the Nrf2 activator, Protandim (Prot), increased longevity in genetically heterogeneous mice is consistent with previous reports, suggesting that Nrf2 activation may be causally associated with increased lifespan.",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "lifespan_effect": {
+        "direction": {
+          "value": "increase",
+          "source_quote": "there was a significant effect (P < 0.012) of Prot on survival of male mice in the pooled population, with a 7% increase in median survival",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "median_change_pct": {
+          "value": 7,
+          "source_quote": "there was a significant effect (P < 0.012) of Prot on survival of male mice in the pooled population, with a 7% increase in median survival",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "mean_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "max_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "p_value": {
+          "value": "0.012",
+          "source_quote": "there was a significant effect (P < 0.012) of Prot on survival of male mice in the pooled population, with a 7% increase in median survival",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        }
+      },
+      "notes": "Male-only effect; no significant effect in females at any endpoint. Maximal lifespan not significantly extended in males (90th percentile +6%, Wang-Allison P=0.103) - max_change_pct null per the no-significant-max convention. Dose escalated mid-study (600 to 1200 ppm at 17 months) because 600 ppm did not modulate xenobiotic-response liver mRNA - unusual protocol worth an extractor test."
+    },
+    {
+      "experiment_id": "strong2016-mmusculus-acarbose-male",
+      "organism": {
+        "value": "M. musculus",
+        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "strain": {
+        "value": "UM-HET3 (genetically heterogeneous)",
+        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "sex": {
+        "value": "male",
+        "source_quote": "there was a significant increase in survival for male mice treated with ACA, with a 6% increase in median lifespan and a significant 12% increase in maximal lifespan",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "sample_size": {
+        "value": 147,
+        "source_quote": "ACA 147 875 6 0.000 (Table 2, C2012 males pooled across sites)",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "intervention": {
+        "type": {
+          "value": "pharmacological",
+          "source_quote": "Acarbose (ACA) is an inhibitor of intestinal a-glucosidase.",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "agent": {
+          "value": "acarbose",
+          "source_quote": "Beginning at 16 months of age, mice were fed chow containing 1000 ppm ACA.",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "dose": {
+          "value": "1000 ppm",
+          "source_quote": "Beginning at 16 months of age, mice were fed chow containing 1000 ppm ACA.",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "age_at_start": {
+          "value": "16 months",
+          "source_quote": "Beginning at 16 months of age, mice were fed chow containing 1000 ppm ACA.",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        }
+      },
+      "mechanism": {
+        "value": "alpha-glucosidase inhibition",
+        "source_quote": "Acarbose (ACA) is an inhibitor of intestinal a-glucosidase. It inhibits digestion of polysaccharides and attenuates the uptake of sugars from the GI tract.",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "lifespan_effect": {
+        "direction": {
+          "value": "increase",
+          "source_quote": "there was a significant increase in survival for male mice treated with ACA, with a 6% increase in median lifespan and a significant 12% increase in maximal lifespan",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "median_change_pct": {
+          "value": 6,
+          "source_quote": "there was a significant increase in survival for male mice treated with ACA, with a 6% increase in median lifespan and a significant 12% increase in maximal lifespan",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "mean_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "max_change_pct": {
+          "value": 12,
+          "source_quote": "there was a significant increase in survival for male mice treated with ACA, with a 6% increase in median lifespan and a significant 12% increase in maximal lifespan",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "p_value": {
+          "value": "< 0.001",
+          "source_quote": "ACA 147 875 6 0.000 1183 12 0.0001 (Table 2, C2012 males; log-rank and Wang-Allison)",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        }
+      },
+      "notes": "Late-start arm (16 months); the earlier ITP study starting at 4 months gave a larger male median effect (+22%), so the late-start effect is smaller - authors conclude ACA is optimal when started earlier. 90th-percentile survival mapped to max_change_pct per convention."
+    },
+    {
+      "experiment_id": "strong2016-mmusculus-acarbose-female",
+      "organism": {
+        "value": "M. musculus",
+        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "strain": {
+        "value": "UM-HET3 (genetically heterogeneous)",
+        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "sex": {
+        "value": "female",
+        "source_quote": "ACA started at this late age had only a small effect on median lifespan in females (2%, P = 0.07), but led to a significant (6%, P = 0.01) increase in maximal lifespan.",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "sample_size": {
+        "value": 135,
+        "source_quote": "ACA 135 902 2 0.07 (Table 2, C2012 females pooled across sites)",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "intervention": {
+        "type": {
+          "value": "pharmacological",
+          "source_quote": "Acarbose (ACA) is an inhibitor of intestinal a-glucosidase.",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "agent": {
+          "value": "acarbose",
+          "source_quote": "Beginning at 16 months of age, mice were fed chow containing 1000 ppm ACA.",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "dose": {
+          "value": "1000 ppm",
+          "source_quote": "Beginning at 16 months of age, mice were fed chow containing 1000 ppm ACA.",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "age_at_start": {
+          "value": "16 months",
+          "source_quote": "Beginning at 16 months of age, mice were fed chow containing 1000 ppm ACA.",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        }
+      },
+      "mechanism": {
+        "value": "alpha-glucosidase inhibition",
+        "source_quote": "Acarbose (ACA) is an inhibitor of intestinal a-glucosidase. It inhibits digestion of polysaccharides and attenuates the uptake of sugars from the GI tract.",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "lifespan_effect": {
+        "direction": {
+          "value": "increase",
+          "source_quote": "ACA started at this late age had only a small effect on median lifespan in females (2%, P = 0.07), but led to a significant (6%, P = 0.01) increase in maximal lifespan.",
+          "confidence": "medium",
+          "extracted_from": "full_text"
+        },
+        "median_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "mean_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "max_change_pct": {
+          "value": 6,
+          "source_quote": "ACA started at this late age had only a small effect on median lifespan in females (2%, P = 0.07), but led to a significant (6%, P = 0.01) increase in maximal lifespan.",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "p_value": {
+          "value": "0.01",
+          "source_quote": "led to a significant (6%, P = 0.01) increase in maximal lifespan",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        }
+      },
+      "notes": "Endpoint-split result: median effect not significant (+2%, P=0.07, recorded as null), maximal lifespan significantly extended (+6%, P=0.01). Direction recorded as increase with medium confidence because it rests on the max endpoint only - a deliberate judgment-call case for evals. p_value refers to the significant (max) endpoint."
+    },
+    {
+      "experiment_id": "strong2016-mmusculus-metformin-rapamycin",
+      "organism": {
+        "value": "M. musculus",
+        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "strain": {
+        "value": "UM-HET3 (genetically heterogeneous)",
+        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "sex": {
+        "value": "mixed",
+        "source_quote": "this combination led to a 23% increase in survival compared with controls in both sexes, as well as to significant increases in maximum lifespan (P < 0.001)",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "sample_size": {
+        "value": 300,
+        "source_quote": "Met/Rapa 158 959 23 0.000 (males); Met/Rapa 142 1078 23 0.000 (females) (Table 1)",
+        "confidence": "medium",
+        "extracted_from": "full_text"
+      },
+      "intervention": {
+        "type": {
+          "value": "pharmacological",
+          "source_quote": "Rapamycin (Rapa) and Met each inhibit mTORC1, but through distinct mechanisms.",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "agent": {
+          "value": "metformin plus rapamycin",
+          "source_quote": "Microencapsulated rapamycin was obtained from Southwest Research Institute (San Antonio, TX) and mixed at a concentration of 14 ppm with metformin (1000 ppm) to determine the effects of the mixture on longevity.",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "dose": {
+          "value": "metformin 1000 ppm plus rapamycin 14 ppm in diet",
+          "source_quote": "Microencapsulated rapamycin was obtained from Southwest Research Institute (San Antonio, TX) and mixed at a concentration of 14 ppm with metformin (1000 ppm) to determine the effects of the mixture on longevity.",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "age_at_start": {
+          "value": "9 months",
+          "source_quote": "The mixture was fed to mice starting at 9 months of age.",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        }
+      },
+      "mechanism": {
+        "value": "mTORC1 inhibition with AMPK-mediated compensation of glucose effects",
+        "source_quote": "Rapamycin (Rapa) and Met each inhibit mTORC1, but through distinct mechanisms. In addition, Rapa affects glucose tolerance through inhibition of a second mTOR complex, mTORC2, resulting in hepatic insulin resistance (Lamming et al. 2013), while Met acts to activate AMPK, suppressing hepatic glucose output",
+        "confidence": "medium",
+        "extracted_from": "full_text"
+      },
+      "lifespan_effect": {
+        "direction": {
+          "value": "increase",
+          "source_quote": "this combination led to a 23% increase in survival compared with controls in both sexes, as well as to significant increases in maximum lifespan (P < 0.001)",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "median_change_pct": {
+          "value": 23,
+          "source_quote": "this combination led to a 23% increase in survival compared with controls in both sexes, as well as to significant increases in maximum lifespan (P < 0.001)",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "mean_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "max_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "p_value": {
+          "value": "< 0.001",
+          "source_quote": "this combination led to a 23% increase in survival compared with controls in both sexes, as well as to significant increases in maximum lifespan (P < 0.001)",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        }
+      },
+      "notes": "Median +23% identical in both sexes, so recorded as one mixed record rather than a male/female split. Max lifespan significantly increased in both sexes but with different magnitudes (90th percentile +10% males, +17% females) - left null at record level, per-sex values here. sample_size 300 is the sum of the two sex arms (158 M + 142 F), medium confidence. The added benefit over rapamycin alone is a historical comparison (P=0.12 site-stratified, P=0.049 unstratified) - suggestive, not conclusive, per the authors."
+    },
+    {
+      "experiment_id": "strong2016-mmusculus-metformin",
+      "organism": {
+        "value": "M. musculus",
+        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "strain": {
+        "value": "UM-HET3 (genetically heterogeneous)",
+        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "sex": {
+        "value": "mixed",
+        "source_quote": "Met led to a 7% increase in median lifespan of males when data were pooled across sites, but the effect was not statistically significant (P = 0.35). ... There was no effect of Met on survival of female mice",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "sample_size": {
+        "value": 288,
+        "source_quote": "Met 148 835 7 0.348 (males); Met 140 872 0 0.791 (females) (Table 1)",
+        "confidence": "medium",
+        "extracted_from": "full_text"
+      },
+      "intervention": {
+        "type": {
+          "value": "pharmacological",
+          "source_quote": "Metformin (Met) is an oral antidiabetic drug that has been FDA-approved for the treatment of type 2 diabetes",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "agent": {
+          "value": "metformin",
+          "source_quote": "Beginning at 9 months of age, groups of male and female mice began consuming a diet containing 1000 ppm (0.1%) Met.",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "dose": {
+          "value": "1000 ppm (0.1%) in diet",
+          "source_quote": "Beginning at 9 months of age, groups of male and female mice began consuming a diet containing 1000 ppm (0.1%) Met.",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "age_at_start": {
+          "value": "9 months",
+          "source_quote": "Beginning at 9 months of age, groups of male and female mice began consuming a diet containing 1000 ppm (0.1%) Met.",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        }
+      },
+      "mechanism": {
+        "value": null,
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "lifespan_effect": {
+        "direction": {
+          "value": "no_effect",
+          "source_quote": "Met led to a 7% increase in median lifespan of males when data were pooled across sites, but the effect was not statistically significant (P = 0.35).",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "median_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "mean_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "max_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "p_value": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "full_text"
+        }
+      },
+      "notes": "Designated no_effect hard case: a nominal +7% male median (P=0.35) must not be coerced into increase. Numeric changes deliberately null because no endpoint was significant; per-sex nominal values (males +7% P=0.35, females 0% P=0.79) kept here. Direct cross-paper disagreement with Martin-Montalvo 2013 (10.1038/ncomms3192): same agent, same 0.1% dose, positive there in C57BL/6 males (Gehan-Breslow) vs null here in UM-HET3 with log-rank and larger n - the authors discuss the statistical and design differences explicitly. Flagship contradiction-detection case."
+    },
+    {
+      "experiment_id": "strong2016-mmusculus-fish-oil",
+      "organism": {
+        "value": "M. musculus",
+        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "strain": {
+        "value": "UM-HET3 (genetically heterogeneous)",
+        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "sex": {
+        "value": "mixed",
+        "source_quote": "Pooling across sites, there were no significant effects at either dose of FO on survival of male or female mice.",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "sample_size": {
+        "value": null,
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "intervention": {
+        "type": {
+          "value": "dietary",
+          "source_quote": "Microencapsulated fish oil (containing DHA, minimum 132 mg/g of powder; and EPA plus DHA, minimum 168 mg kg-1 of powder) was purchased from Ocean Nutrition Canada",
+          "confidence": "medium",
+          "extracted_from": "full_text"
+        },
+        "agent": {
+          "value": "fish oil",
+          "source_quote": "Results of FO, at 15 000 or 50 000 ppm from 9 months of age, are shown in Figure 5 and Table 2.",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "dose": {
+          "value": "15 000 or 50 000 ppm in diet",
+          "source_quote": "Results of FO, at 15 000 or 50 000 ppm from 9 months of age, are shown in Figure 5 and Table 2.",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "age_at_start": {
+          "value": "9 months",
+          "source_quote": "Results of FO, at 15 000 or 50 000 ppm from 9 months of age, are shown in Figure 5 and Table 2.",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        }
+      },
+      "mechanism": {
+        "value": null,
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "lifespan_effect": {
+        "direction": {
+          "value": "no_effect",
+          "source_quote": "Pooling across sites, there were no significant effects at either dose of FO on survival of male or female mice.",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "median_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "mean_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "max_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "p_value": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "full_text"
+        }
+      },
+      "notes": "Both doses null in both sexes (pooled); one record covering both doses since neither reached significance. Site-level heterogeneity worth noting: high dose decreased male longevity at UM (-18%, P=0.003) while the low dose trended up at UT (+9%, P=0.06) - the authors use this to argue for multi-site testing. Body weight increased dose-dependently in males, so the agent was biologically active."
+    },
+    {
+      "experiment_id": "strong2016-mmusculus-udca",
+      "organism": {
+        "value": "M. musculus",
+        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "strain": {
+        "value": "UM-HET3 (genetically heterogeneous)",
+        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "sex": {
+        "value": "mixed",
+        "source_quote": "Pooling the data across sites, there were no significant differences in survival for male or female mice given UDCA",
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "sample_size": {
+        "value": 282,
+        "source_quote": "UDCA 149 832 7 0.448 (males); UDCA 133 865 1 0.762 (females) (Table 1)",
+        "confidence": "medium",
+        "extracted_from": "full_text"
+      },
+      "intervention": {
+        "type": {
+          "value": "pharmacological",
+          "source_quote": "Treatment with the bile acid, UDCA, has been reported to have a wide variety of effects that are compatible with extended lifespan in mammals",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "agent": {
+          "value": "ursodeoxycholic acid (UDCA)",
+          "source_quote": "Beginning at 5 months of age, mice were fed chow containing 5000 ppm UDCA.",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "dose": {
+          "value": "5000 ppm in diet",
+          "source_quote": "Beginning at 5 months of age, mice were fed chow containing 5000 ppm UDCA.",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "age_at_start": {
+          "value": "5 months",
+          "source_quote": "Beginning at 5 months of age, mice were fed chow containing 5000 ppm UDCA.",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        }
+      },
+      "mechanism": {
+        "value": null,
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "full_text"
+      },
+      "lifespan_effect": {
+        "direction": {
+          "value": "no_effect",
+          "source_quote": "Pooling the data across sites, there were no significant differences in survival for male or female mice given UDCA, and no significant benefits at any site considered separately",
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "median_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "mean_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "max_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "full_text"
+        },
+        "p_value": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "full_text"
+        }
+      },
+      "notes": "Null on all survival endpoints in both sexes despite clear biological activity (significant body-weight reductions across the lifespan in both sexes) - a useful case where an extractor must not infer a lifespan effect from a physiological effect. First reported lifespan study of UDCA per the authors."
+    }
+  ]
+}
