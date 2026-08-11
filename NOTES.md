@@ -355,3 +355,23 @@ Applied to the three records: `sample_size.value` and `sample_size.source_quote`
 3. **Multi-source provenance** — this entry: a value attributable to two or more disjoint places in the source, with one contiguous `source_quote`.
 
 The first two are the same gap seen from two sides — a qualitative claim with no number, and a number with no field. The third is a different axis: not which fields exist, but how many places one field is allowed to cite. It is the only one of the three that changes the claim wrapper itself rather than the `lifespan_effect` shape, and so the only one that touches every field in the schema. Whichever shape v0.4.0 takes, all three records are the migration test cases. Not designed here, and not fixed unilaterally mid-labeling.
+
+---
+
+## 2026-08-11 — `--refresh-quotes` could have written a mid-word slice into `data/gold/`
+
+**The defect.** `best_slice` finds the passage of PMC text closest to a quote by aligning the two with `SequenceMatcher` and then walking outward from the first and last shared runs by however many characters of the quote sit outside them. That walk counts characters and knows nothing about words. Given a quote whose *leading* characters were themselves mistranscribed — `chi2 = 5.46 …` against the paper's `χ2 = 5.46 …` — the alignment finds no shared run until several characters in, and the walk-back overshoots into the middle of the preceding word. The candidate it returned for Martin-Montalvo 2013 began:
+
+```
+nsion of mean lifespan (Fig. 1a), χ2 = 5.46 and p= 0.02 in Gehan-Breslow survival test
+```
+
+Verbatim, unique in the source, and gibberish — the front of `extension` had been severed.
+
+**Why it never fired.** `--refresh-quotes` only substitutes a candidate scoring at or above `REFRESH_SIMILARITY` (0.90). Both affected quotes are transliterations of a Greek letter plus a spacing difference in a short string, which scores 71% and 74%, so `plan_rewrite` refused them on the threshold and the mid-word candidate was never a write. Nothing in `data/gold/` was ever damaged. That is luck, not design: the threshold was chosen to separate mistranscriptions from reconstructions, and it caught this by coincidence of the same quotes being short. A longer sentence with the same leading-character problem would have cleared 0.90 and been written.
+
+**The failure mode being prevented** is the one that has no second chance. `--refresh-quotes --write` edits ground truth in place, and it writes a string that by construction verifies — the whole point is that the candidate is a real slice of the paper. A gibberish quote committed that way passes `check_gold.py` on that run and on every run afterwards. Nothing downstream distinguishes `of mean lifespan …` from `nsion of mean lifespan …`; both are contiguous and both are in the source. It would have to be caught by a human reading the diff, which is exactly the review this tool exists to make unnecessary.
+
+**The fix, in two independent places.** `best_slice` now snaps both boundaries to whitespace edges, scoring the contracted and expanded form of each and keeping the best-matching combination (ties to the shorter slice). Separately, `plan_rewrite` refuses any candidate that begins or ends adjacent to a word character, and `apply_rewrites` re-checks the same condition against the source and **raises** rather than skipping. The second and third checks are unreachable while the first is correct, and that is the point: this is the only code path in the repo that edits `data/gold/`, and one guard on it is one more than zero but fewer than it deserves.
+
+Recorded because the general lesson outlives this bug: a string-similarity search is a *search*, and its output is a candidate, not a quote. Anything that promotes a search result into ground truth needs a check that the result is well-formed on its own terms, not merely that it scored well.

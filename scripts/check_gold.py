@@ -746,6 +746,54 @@ def _group_by_agent_and_organism(document: dict[str, Any]) -> dict[tuple[str, st
 REFRESH_SIMILARITY = 0.90
 
 
+# A "word character" for the purpose of deciding whether a slice boundary cuts
+# through a word. Regex `\w` rather than `str.isalnum` so it is the same notion
+# the guard in `splits_a_word` uses, and so `_` counts.
+_WORD_RE = re.compile(r"\w")
+
+
+def _expand_start(source: str, index: int) -> int:
+    while index > 0 and not source[index - 1].isspace():
+        index -= 1
+    return index
+
+
+def _contract_start(source: str, index: int) -> int:
+    while 0 < index < len(source) and not source[index - 1].isspace():
+        index += 1
+    return index
+
+
+def _expand_end(source: str, index: int) -> int:
+    while index < len(source) and not source[index].isspace():
+        index += 1
+    return index
+
+
+def _contract_end(source: str, index: int) -> int:
+    while 0 < index < len(source) and not source[index].isspace():
+        index -= 1
+    return index
+
+
+def splits_a_word(source: str, start: int, end: int) -> bool:
+    """True when `source[start:end]` begins or ends inside a word.
+
+    The condition is adjacency, not whitespace: a boundary is bad only when a
+    word character on the inside of the slice touches a word character on the
+    outside. A slice ending in `.` followed by a letter is fine — that is a
+    sentence boundary, not a severed word.
+    """
+    candidate = source[start:end]
+    if not candidate:
+        return False
+    if start > 0 and _WORD_RE.match(source[start - 1]) and _WORD_RE.match(candidate[0]):
+        return True
+    return bool(
+        end < len(source) and _WORD_RE.match(source[end]) and _WORD_RE.match(candidate[-1])
+    )
+
+
 def best_slice(quote: str, source: str) -> tuple[str, float, int]:
     """Return `(closest contiguous slice of source, similarity, start index)`.
 
@@ -754,6 +802,16 @@ def best_slice(quote: str, source: str) -> tuple[str, float, int]:
     matters for exactly the case this mode exists for — `+/-` becoming `±`
     shortens the text by two characters, and a fixed-length window would return
     a slice with two characters of the next sentence stuck on the end.
+
+    **Boundaries are snapped to whitespace edges.** The character-count walk
+    below has no notion of a word: given a quote whose leading characters were
+    themselves mistranscribed, it happily walks back into the middle of one and
+    returns a slice beginning `nsion of mean lifespan` — verbatim, unique, and
+    unusable as a quote. Since `--refresh-quotes --write` substitutes this
+    string into `data/gold/`, a slice that reads as gibberish would become
+    ground truth. Both the contracted and the expanded boundary are legal, so
+    all four combinations are scored and the best-matching one wins; ties go to
+    the shorter slice, which is the one that over-includes least.
     """
     if not source or not quote:
         return "", 0.0, -1
@@ -782,6 +840,18 @@ def best_slice(quote: str, source: str) -> tuple[str, float, int]:
     start = max(0, first_i1 - first_j1)
     end = min(len(window), last_i2 + (len(quote) - last_j2))
 
+    starts = {_contract_start(window, start), _expand_start(window, start)}
+    ends = {_contract_end(window, end), _expand_end(window, end)}
+    scored = [
+        (SequenceMatcher(None, window[s:e], quote, autojunk=False).ratio(), -(e - s), s, e)
+        for s in starts
+        for e in ends
+        if s < e
+    ]
+    if not scored:
+        return "", 0.0, -1
+
+    _, _, start, end = max(scored)
     candidate = window[start:end]
     ratio = SequenceMatcher(None, candidate, quote, autojunk=False).ratio()
     return candidate, ratio, lo + start
@@ -815,6 +885,15 @@ def plan_rewrite(
             location, quote, None, ratio,
             f"closest slice is only {ratio:.0%} similar; this quote is not a "
             "mistranscription of any single passage",
+        )
+
+    if splits_a_word(haystack, at, at + len(candidate)):
+        # Unreachable while `best_slice` snaps to whitespace edges; kept because
+        # this is the last gate before a string is written into ground truth,
+        # and "the search function is correct" is not a thing to rely on twice.
+        return QuoteRewrite(
+            location, quote, None, ratio,
+            "the closest slice begins or ends inside a word",
         )
 
     occurrences = haystack.count(candidate)
@@ -859,13 +938,36 @@ def plan_refresh(report: FileReport) -> list[QuoteRewrite]:
     ]
 
 
-def apply_rewrites(document: dict[str, Any], rewrites: list[QuoteRewrite]) -> int:
+def apply_rewrites(document: dict[str, Any], rewrites: list[QuoteRewrite], source: str) -> int:
     """Replace `source_quote` strings in place. Touches nothing else.
 
     Deliberately narrow: it assigns to exactly one key of each matched claim
     wrapper. A `value`, a `confidence` and a `notes` are the labeller's
     judgement, and no amount of string similarity is evidence about them.
+
+    Re-checks every candidate against `source` before writing, and raises rather
+    than skipping if one is not a whole-word slice. This duplicates the gate in
+    `plan_rewrite` on purpose. It is belt and braces on the one code path in
+    this repo that edits ground truth, and the cost of the redundancy is a
+    string search where the cost of missing it is a corrupted gold file that
+    verifies clean forever after.
     """
+    haystack = collapse_whitespace(source)
+    for rewrite in rewrites:
+        if not rewrite.unambiguous:
+            continue
+        at = haystack.find(rewrite.candidate)
+        if at < 0:
+            raise ValueError(
+                f"{rewrite.location}: refusing to write a candidate that is not in the "
+                f"source text: {rewrite.candidate!r}"
+            )
+        if splits_a_word(haystack, at, at + len(rewrite.candidate)):
+            raise ValueError(
+                f"{rewrite.location}: refusing to write a candidate that begins or ends "
+                f"inside a word: {rewrite.candidate!r}"
+            )
+
     by_location = {r.location: r.candidate for r in rewrites if r.unambiguous}
     changed = 0
     for path, wrapper in iter_claims(document):
@@ -909,8 +1011,8 @@ def run_refresh(reports: list[FileReport], *, write: bool) -> int:
 
         if not write:
             continue
-        assert report.document is not None
-        applied = apply_rewrites(report.document, rewrites)
+        assert report.document is not None and isinstance(report.full_text, str)
+        applied = apply_rewrites(report.document, rewrites, report.full_text)
         if applied:
             write_document(report.path, report.document)
             changed_files += 1

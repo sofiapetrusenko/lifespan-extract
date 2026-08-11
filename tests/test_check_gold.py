@@ -1021,7 +1021,9 @@ def test_apply_rewrites_touches_only_the_source_quote():
     before = copy.deepcopy(body)
 
     changed = check_gold.apply_rewrites(
-        body, [rewrite_for("UM-HET3 mice were produced at each of the three test sites.")]
+        body,
+        [rewrite_for("UM-HET3 mice were produced at each of the three test sites.")],
+        TYPESET_FULL_TEXT,
     )
 
     assert changed == 1
@@ -1114,3 +1116,120 @@ def test_refresh_rejects_no_quotes():
 def test_refresh_and_promote_are_separate_steps():
     with pytest.raises(SystemExit):
         main(["x.json", "--refresh-quotes", "--promote"])
+
+
+# --------------------------------------------------------------------------
+# word-boundary snapping (regression: the "nsion of mean lifespan" defect)
+# --------------------------------------------------------------------------
+
+# The real PMC passage that produced the defect. `best_slice` walked back from
+# the alignment by raw character count and landed inside "extension", returning
+# a candidate that began "nsion of mean lifespan" — verbatim, unique, and
+# gibberish. It was never written only because the quote scored 74%, below the
+# refresh threshold; a slightly closer transliteration would have committed it.
+MARTINMONTALVO_PMC = (
+    "The survival curves of control and metformin-treated male mice separated shortly "
+    "after the onset of the treatment. Diet supplementation with 0.1% metformin led to "
+    "a 5.83% extension of mean lifespan (Fig. 1a), χ2 = 5.46 and p= 0.02 in "
+    "Gehan-Breslow survival test. In agreement with these data, a different strain of "
+    "male mice (B6C3F1) supplemented with the same dose of metformin (0.1% w/w) "
+    "resulted in a 4.15% extension of mean lifespan."
+)
+MARTINMONTALVO_QUOTE = "chi2 = 5.46 and p = 0.02 in Gehan-Breslow survival test"
+
+
+def test_best_slice_never_starts_mid_word_regression():
+    """The defect itself: the candidate began 'nsion', mid-way through 'extension'."""
+    candidate, _, at = check_gold.best_slice(MARTINMONTALVO_QUOTE, MARTINMONTALVO_PMC)
+
+    assert not candidate.startswith("nsion")
+    assert not check_gold.splits_a_word(MARTINMONTALVO_PMC, at, at + len(candidate))
+    # And it still finds the right passage.
+    assert "χ2 = 5.46 and p= 0.02 in Gehan-Breslow survival test" in candidate
+
+
+def test_best_slice_boundaries_land_on_whitespace_edges():
+    candidate, _, at = check_gold.best_slice(MARTINMONTALVO_QUOTE, MARTINMONTALVO_PMC)
+    assert at == 0 or MARTINMONTALVO_PMC[at - 1].isspace()
+    end = at + len(candidate)
+    assert end == len(MARTINMONTALVO_PMC) or MARTINMONTALVO_PMC[end].isspace()
+
+
+def test_best_slice_snapping_does_not_break_the_ordinary_case():
+    """Snapping must not disturb a candidate that was already whole-word."""
+    candidate, ratio, _ = check_gold.best_slice(
+        "The dose yielded 0.45 +/- 0.09 mM in serum.",
+        check_gold.collapse_whitespace(TYPESET_FULL_TEXT),
+    )
+    assert candidate == "The dose yielded 0.45 ± 0.09 mM in serum."
+    assert ratio > 0.9
+
+
+def test_best_slice_at_the_very_start_and_end_of_the_source():
+    """Boundary arithmetic must not walk off either end."""
+    source = "alpha beta gamma"
+    candidate, _, at = check_gold.best_slice("alpha beta", source)
+    assert at == 0 and not check_gold.splits_a_word(source, at, at + len(candidate))
+    candidate, _, at = check_gold.best_slice("beta gamma", source)
+    assert at + len(candidate) == len(source)
+
+
+@pytest.mark.parametrize(
+    "start,end,expected",
+    [
+        (3, 8, True),    # "nsion" — word char on both sides of the left edge
+        (0, 9, False),   # "extension" — whole word
+        (0, 5, True),    # "exten" — cut on the right
+        (10, 12, False), # "of" — whole word, spaces either side
+    ],
+)
+def test_splits_a_word_detects_both_edges(start, end, expected):
+    source = "extension of mean"
+    assert check_gold.splits_a_word(source, start, end) is expected
+
+
+def test_splits_a_word_allows_a_sentence_boundary():
+    """A slice ending in '.' before a letter is a sentence edge, not a cut word."""
+    source = "survival test. In agreement"
+    assert not check_gold.splits_a_word(source, 0, len("survival test."))
+
+
+def test_splits_a_word_on_an_empty_slice():
+    assert not check_gold.splits_a_word("anything", 3, 3)
+
+
+def test_plan_rewrite_refuses_a_mid_word_candidate(monkeypatch):
+    """The gate in plan_rewrite, exercised by forcing best_slice to misbehave."""
+    monkeypatch.setattr(
+        check_gold, "best_slice", lambda _q, _s: ("nsion of mean lifespan", 0.99, 3)
+    )
+    rewrite = check_gold.plan_rewrite("x", "sion of mean lifespan", "extension of mean lifespan")
+    assert not rewrite.unambiguous
+    assert "inside a word" in rewrite.reason
+
+
+def test_apply_rewrites_raises_rather_than_writing_a_mid_word_candidate():
+    """The last gate before ground truth. Loud failure, not a silent skip."""
+    body = typeset_document("UM-HET3 mice were produced at each of the three test sites.")
+    bad = check_gold.QuoteRewrite("experiments[0].strain", "whatever", "nsion of mean", 0.99)
+
+    with pytest.raises(ValueError, match="inside a word"):
+        check_gold.apply_rewrites(body, [bad], MARTINMONTALVO_PMC)
+    # The document is untouched by the refusal.
+    assert body["experiments"][0]["strain"]["source_quote"].startswith("UM-HET3")
+
+
+def test_apply_rewrites_raises_when_the_candidate_is_not_in_the_source():
+    body = typeset_document("UM-HET3 mice were produced at each of the three test sites.")
+    bogus = check_gold.QuoteRewrite("experiments[0].strain", "whatever", "not in the paper", 0.99)
+
+    with pytest.raises(ValueError, match="not in the source text"):
+        check_gold.apply_rewrites(body, [bogus], MARTINMONTALVO_PMC)
+
+
+def test_apply_rewrites_still_writes_a_whole_word_candidate():
+    body = typeset_document("UM-HET3 mice were produced at each of the three test sites.")
+    good = rewrite_for("UM-HET3 mice were produced at each of the three test sites.")
+
+    assert check_gold.apply_rewrites(body, [good], TYPESET_FULL_TEXT) == 1
+    assert body["experiments"][0]["strain"]["source_quote"].startswith("UM‐HET3")
