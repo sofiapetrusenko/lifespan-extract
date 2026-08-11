@@ -82,6 +82,29 @@ CASES: list[tuple[str, str, str, str]] = [
     (BLOCK, "Bash", f"cat '{GOLD}/x.json", "unbalanced quoting"),
     (BLOCK, "Bash", ".venv/bin/python scripts/check_gold.py data/drafts/x.json --promote",
      "agent-invoked --promote"),
+
+    # ---- check_gold.py's writing modes are the human's to run -------------
+    # `check_promote` used to match one hardcoded flag and now loops over
+    # HUMAN_ONLY_FLAGS. These pin both flags through that rewrite. The dry run
+    # is blocked as well as the write: an agent that can read the proposed
+    # rewrites is one step from running them, and the whole mode is the
+    # human's to drive.
+    (BLOCK, "Bash", ".venv/bin/python scripts/check_gold.py --all --refresh-quotes",
+     "agent-invoked --refresh-quotes, dry run"),
+    (BLOCK, "Bash", ".venv/bin/python scripts/check_gold.py --all --refresh-quotes --write",
+     "agent-invoked --refresh-quotes --write"),
+    # No protected path named, deliberately: with one, the INTERPRETERS rule
+    # would block this on `python` alone and the case would pass without
+    # testing the flag at all.
+    (BLOCK, "Bash", ".venv/bin/python scripts/check_gold.py --refresh-quotes=x --all",
+     "--refresh-quotes in the = form"),
+    # The pre-existing --promote case above has the flag last, where `(?:\s|$)`
+    # matches on end-of-string. This one puts it mid-command so the trailing
+    # whitespace branch is exercised too — the regression the loop could hide.
+    (BLOCK, "Bash", ".venv/bin/python scripts/check_gold.py --promote data/drafts/x.json",
+     "--promote before its argument rather than last"),
+    (ALLOW, "Bash", "rg -n -- --refresh-quotes README.md",
+     "a human-only flag named by a command that is not check_gold"),
     (BLOCK, "Bash", "echo x > .claude/hooks/protect_paths.py", "the hook editing itself"),
     (BLOCK, "Write", f"{GOLD}/miller2011.json", "editor tool on a gold file"),
     (BLOCK, "Write", ".claude/agents/reviewer.md", "editor tool on .claude"),
