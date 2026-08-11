@@ -1270,3 +1270,147 @@ def test_a_skipped_full_text_quote_blocks_promotion_like_any_other(dirs, capsys,
     assert main(promote_argv(draft)) == 1
     assert draft.exists()
     assert "could not be checked" in capsys.readouterr().out
+
+
+# --------------------------------------------------------------------------
+# bioRxiv preprints: abstract by DOI, full text unverifiable
+# --------------------------------------------------------------------------
+
+PREPRINT_ABSTRACT = (
+    "We find that valine restriction (Val-R) improves metabolic health in C57BL/6J mice, "
+    "and extends the lifespan of male, but not female, mice by 23%."
+)
+PREPRINT_DOI = "10.1101/2025.08.31.673254"
+
+
+def preprint(**overrides):
+    body = document()
+    body["paper"] = {"doi": PREPRINT_DOI, "title": "Lifelong restriction of dietary valine",
+                     "year": 2025, "source": "biorxiv", "pmid": None}
+    body["experiments"][0] = experiment(
+        organism="M. musculus",
+        sex=claim("male", "extends the lifespan of male, but not female, mice by 23%"),
+    )
+    body["experiments"][0]["organism"] = claim(
+        "M. musculus", "improves metabolic health in C57BL/6J mice")
+    body["experiments"][0]["intervention"]["type"] = claim(
+        "dietary", "valine restriction (Val-R) improves metabolic health")
+    body["experiments"][0]["intervention"]["agent"] = claim(
+        "valine restriction", "valine restriction (Val-R) improves metabolic health")
+    body["experiments"][0]["intervention"]["age_at_start"] = claim(None, None, "full_text")
+    body["experiments"][0]["mechanism"] = claim(None, None, "full_text")
+    body["experiments"][0]["lifespan_effect"]["direction"] = claim(
+        "increase", "extends the lifespan of male, but not female, mice by 23%")
+    body.update(overrides)
+    return body
+
+
+def biorxiv_abstracts(mapping=None):
+    table = {PREPRINT_DOI: PREPRINT_ABSTRACT} if mapping is None else mapping
+    return lambda doi: table.get(doi)
+
+
+def test_preprint_abstract_quotes_verify_against_biorxiv(tmp_path, validator):
+    """A preprint is identified by DOI, and its quotes check the same way."""
+    report = check_file(write(tmp_path, "green2025.json", preprint()), validator,
+                        abstracts(), None, biorxiv_abstracts())
+
+    assert not report.failed
+    counts = report.counts("abstract")
+    assert counts["fail"] == 0
+    assert counts["ok"] > 0
+
+
+def test_preprint_never_consults_pubmed(tmp_path, validator):
+    """paper.source decides. A preprint has no PMID to look up."""
+    def explode(_pmid):
+        raise AssertionError("PubMed must not be consulted for a source: biorxiv record")
+
+    report = check_file(write(tmp_path, "green2025.json", preprint()), validator,
+                        explode, None, biorxiv_abstracts())
+    assert not report.failed
+
+
+def test_preprint_quote_absent_from_the_biorxiv_abstract_fails(tmp_path, validator):
+    body = preprint()
+    body["experiments"][0]["organism"] = claim("M. musculus", "a sentence the preprint never had")
+    report = check_file(write(tmp_path, "green2025.json", body), validator,
+                        abstracts(), None, biorxiv_abstracts())
+    assert report.failed
+
+
+def test_preprint_full_text_quotes_are_unverifiable_not_failed(tmp_path, validator):
+    """bioRxiv full text is not in PMC, so nothing here can check it."""
+    body = preprint()
+    body["experiments"][0]["strain"] = claim("C57BL/6J", "mice were fed a valine-restricted diet",
+                                             "full_text")
+    report = check_file(write(tmp_path, "green2025.json", body), validator,
+                        abstracts(), None, biorxiv_abstracts())
+
+    assert not report.failed, "unverifiable is a warning, never a failure"
+    assert report.counts("full_text")["unverifiable"] == 1
+    assert any(i.level == WARN and "not in PMC" in i.message for i in report.issues)
+
+
+def test_preprint_with_no_full_text_quotes_emits_no_pmc_warning(tmp_path, validator):
+    report = check_file(write(tmp_path, "green2025.json", preprint()), validator,
+                        abstracts(), None, biorxiv_abstracts())
+    assert not any("PMC" in i.message for i in report.issues)
+
+
+def test_promote_refuses_a_preprint_with_full_text_quotes(dirs, capsys, monkeypatch):
+    """Same rule as lakowski1998: promotion cannot rest on unchecked quotes."""
+    gold, drafts = dirs
+    monkeypatch.setattr(check_gold, "make_abstract_lookup", lambda **_: abstracts())
+    monkeypatch.setattr(check_gold, "make_full_text_lookup", lambda **_: full_texts({}))
+    monkeypatch.setattr(check_gold, "make_biorxiv_abstract_lookup",
+                        lambda **_: biorxiv_abstracts())
+    body = preprint(_abstract=PREPRINT_ABSTRACT, _journal="bioRxiv")
+    body["experiments"][0]["strain"] = claim("C57BL/6J", "mice were fed a valine-restricted diet",
+                                             "full_text")
+    draft = write(drafts, "green2025.json", body)
+
+    assert main(promote_argv(draft)) == 1
+    assert draft.exists()
+    assert not (gold / "green2025.json").exists()
+    assert "unverifiable" in capsys.readouterr().out
+
+
+def test_promote_accepts_an_abstract_only_preprint(dirs, monkeypatch):
+    """The point of the preprint slot: labelable and promotable without PMC."""
+    gold, drafts = dirs
+    monkeypatch.setattr(check_gold, "make_abstract_lookup", lambda **_: abstracts())
+    monkeypatch.setattr(check_gold, "make_full_text_lookup", lambda **_: full_texts({}))
+    monkeypatch.setattr(check_gold, "make_biorxiv_abstract_lookup",
+                        lambda **_: biorxiv_abstracts())
+    draft = write(drafts, "green2025.json",
+                  preprint(_abstract=PREPRINT_ABSTRACT, _journal="bioRxiv"))
+
+    assert main(promote_argv(draft)) == 0
+    assert (gold / "green2025.json").exists()
+
+
+def test_unreachable_biorxiv_warns_and_does_not_fail(tmp_path, validator):
+    def explode(_doi):
+        raise RuntimeError("bioRxiv unreachable")
+
+    report = check_file(write(tmp_path, "green2025.json", preprint()), validator,
+                        abstracts(), None, explode)
+    assert not report.failed
+    assert any(i.level == WARN and "bioRxiv unreachable" in i.message for i in report.issues)
+    assert report.counts("abstract")["skipped"] > 0
+
+
+def test_preprint_without_a_biorxiv_lookup_skips_rather_than_passes(tmp_path, validator):
+    report = check_file(write(tmp_path, "green2025.json", preprint()), validator, abstracts())
+    assert not report.failed
+    assert report.counts("abstract")["ok"] == 0
+    assert report.counts("abstract")["skipped"] > 0
+
+
+def test_pubmed_records_are_unaffected_by_the_preprint_path(tmp_path, validator):
+    """Regression guard: source: pubmed keeps checking against PubMed."""
+    report = check_file(write(tmp_path, "harrison2009.json", document()), validator,
+                        abstracts(), None, biorxiv_abstracts())
+    assert not report.failed
+    assert report.counts("abstract")["ok"] > 0

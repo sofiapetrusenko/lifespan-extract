@@ -324,3 +324,60 @@ def test_arguments_are_validated():
         fetch(pages(EXHAUSTED), limit=0)
     with pytest.raises(ValueError, match="window_days"):
         fetch(pages(EXHAUSTED), window_days=0)
+
+
+# --------------------------------------------------------------------------
+# fetch_detail: resolving a known DOI, the other direction of the same API
+# --------------------------------------------------------------------------
+
+
+def test_fetch_detail_requests_the_doi_endpoint():
+    from ingest.biorxiv import fetch_detail
+
+    captured: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured.append(str(request.url))
+        return httpx.Response(200, json={"messages": [{"status": "ok"}],
+                                         "collection": [entry()]})
+
+    entries = fetch_detail("10.1101/2026.07.01.123456",
+                           client=make_client(handler), policy=FAST_POLICY)
+    assert len(entries) == 1
+    assert captured[0].endswith("/details/biorxiv/10.1101/2026.07.01.123456")
+
+
+def test_fetch_detail_returns_every_version_oldest_first():
+    from ingest.biorxiv import fetch_detail
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"messages": [{"status": "ok"}], "collection": [
+            entry(version=1, date="2025-09-04"), entry(version=2, date="2026-04-02")]})
+
+    entries = fetch_detail("10.1101/2026.07.01.123456",
+                           client=make_client(handler), policy=FAST_POLICY)
+    assert [e["version"] for e in entries] == [1, 2]
+
+
+def test_fetch_detail_returns_empty_for_a_doi_biorxiv_does_not_know():
+    """'no posts found' is an answer about the DOI, not a fault, so it is not raised."""
+    from ingest.biorxiv import fetch_detail
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"messages": [{"status": "no posts found"}],
+                                         "collection": []})
+
+    assert fetch_detail("10.1101/9999.99.99.999999",
+                        client=make_client(handler), policy=FAST_POLICY) == []
+
+
+def test_fetch_detail_raises_on_a_malformed_response():
+    """Reuses _fetch_page, so the client's loud-failure contract still holds."""
+    from ingest.biorxiv import fetch_detail
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text="not json at all")
+
+    with pytest.raises(ResponseFormatError):
+        fetch_detail("10.1101/2026.07.01.123456",
+                     client=make_client(handler), policy=FAST_POLICY)

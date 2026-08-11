@@ -114,6 +114,17 @@ class PubMedRecord:
     doi: str | None = None
     abstract: str | None = None
 
+    @property
+    def source(self) -> str:
+        """Matches `paper.source` in the schema.
+
+        A property rather than a field so that `asdict` and the cache round-trip
+        are unchanged: an entry written before this existed still loads.
+        `BioRxivRecord` carries the same attribute, which is what lets
+        `scaffold_gold.build_skeleton` read either without asking which it has.
+        """
+        return "pubmed"
+
 
 @dataclass(frozen=True)
 class PMCFullText:

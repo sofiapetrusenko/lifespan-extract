@@ -444,3 +444,37 @@ Populate `species` whenever `organism` is `other`. Elsewhere it is optional and 
 4. Species below the organism enum (Eisenberg 2009) — **closed by this release**
 
 The fourth was separable from the other three, which is why it went first. The first three all change the shape of `lifespan_effect` or of the claim wrapper itself, they interact, and none of them has an obvious design yet; this one adds a field beside `strain` and touches nothing else. Closing it now does not prejudge them, and Eisenberg 2009 can be labelled without waiting.
+
+---
+
+## 2026-08-11 — bioRxiv preprints: scaffolding by DOI, and verifying against bioRxiv
+
+### The schema needed no change
+
+Checked before building anything, because it would have gated the rest. `paper.required` is `doi`, `title`, `year`, `source` — **not `pmid`** — and `pmid` is typed `["string", "null"]` with the description already reading *"null for preprints not yet indexed"*. `source`'s enum has held `"biorxiv"` since v0.1.0. A DOI-only record validates today, with `pmid` null or omitted entirely; both were confirmed against v0.4.0 rather than reasoned about. So this was not a v0.5.0 question. The schema anticipated the case a year of labelling before it arrived, which is the first time that has happened in this project.
+
+### What was built
+
+`scripts/biorxiv_lookup.py` is the bioRxiv twin of `pubmed_lookup.py`: DOI in, `BioRxivRecord` out, cached in `data/.abstract_cache/` under `biorxiv-<doi with slashes replaced>.json`. It is **not** a second client — the HTTP call, retry policy, status vocabulary and JSON shape stay in `ingest/biorxiv.py`, which gained a public `fetch_detail(doi)` beside `fetch_abstracts`. The two are the same API from opposite ends: `fetch_abstracts` scans a date window because bioRxiv has no keyword search, `fetch_detail` resolves a DOI the human already chose.
+
+`scaffold_gold.py` now dispatches on the identifier's shape — digits are a PMID, `10.NNNN/...` is a DOI — rather than on a flag. The two forms are disjoint, so there is nothing to disambiguate, and an identifier that is neither raises at the CLI instead of becoming a confusing "PMID not found" from the wrong client. `build_skeleton` reads `record.source`, `.pmid`, `.journal` and the rest off either record type; `PubMedRecord` gained a `source` property (a property, not a field, so cached entries still load) and `BioRxivRecord` carries the same attribute surface. The PubMed path is unchanged and pinned by a regression test.
+
+`check_gold.py` keys on `paper.source`. A `biorxiv` record's abstract quotes verify against the bioRxiv abstract, fetched by DOI and cached the same way; everything else about the comparison is identical.
+
+### Full-text quotes on a preprint are unverifiable, deliberately
+
+bioRxiv full text exists — every preprint carries a JATS XML link — but it is not in PMC, and PMC is what this checker reads. So a preprint's `full_text` quotes are reported `unverifiable`, the same status a paper outside the PMC open-access subset gets, with the same consequences: a warning on a run, a refusal on `--promote`. The alternative was to add a second full-text fetcher and a second flattener for bioRxiv's JATS. Not now: the preprint slot is one record, the quotes that matter for it are in the abstract, and a second flattener is a second thing to be wrong about whitespace.
+
+A preprint labelled entirely from its abstract emits no PMC warning at all, because nothing is fetched when no claim depends on it. That is the intended shape for this slot — verified end to end: 6/6 abstract quotes, `FULLTEXT` reads `-`, promotable.
+
+### Gcgr 2025 was considered for this slot and rejected
+
+`10.1101/2025.05.13.653849` (Bruner et al., glucagon receptor knockout, median lifespan **decreased** 35% in lean and 54% in diet-induced obese male mice) was the first choice and is not usable as a preprint record: it has since been published as GeroScience `10.1007/s11357-025-01899-w`, **PMID 40993467**, and is in PMC as **PMC12972411**. The whole PubMed path handles it, full text included, so it exercises none of what the preprint slot exists to exercise.
+
+Caught late — the `published` field was in the bioRxiv API payload from the first query and went unread. `scaffold_gold.py` now prints a loud `PUBLISHED` warning naming the journal DOI whenever `fetch_detail` reports one, because once a draft is written the distinction is invisible.
+
+**Worth keeping as a candidate if the gold set is extended.** The set holds 17 `increase`, 6 `no_effect`, 1 `decrease`. Per-field accuracy on `decrease` is uninformative at n=1 — a Phase 3 model that never predicts `decrease` loses almost nothing — and this paper would bring two effect sizes in that direction, in mice, with a quantitative abstract. It would enter as an ordinary `source: pubmed` record via PMID 40993467.
+
+### Live instance of the known preprint/publication dedup gap
+
+This is the case the bioRxiv module's docstring and the "Known limitations" entry describe in the abstract: preprint ingested first, publication appearing later, the two not collapsing across runs. Here the preprint DOI `10.1101/2025.05.13.653849` and the journal DOI `10.1007/s11357-025-01899-w` are the same work, and only the bioRxiv `published` field connects them. `fetch_detail` surfaces that field, so a future dedup pass has something to key on; nothing consumes it yet.

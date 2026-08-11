@@ -71,6 +71,35 @@ _DOI_RE = re.compile(r"^10\.\d{4,9}/\S+$")
 _STATUS_EXHAUSTED = "no posts found"
 
 
+def fetch_detail(
+    doi: str,
+    *,
+    client: httpx.Client | None = None,
+    sleep: Callable[[float], None] = time.sleep,
+    policy: RetryPolicy = DEFAULT_RETRY_POLICY,
+) -> list[dict]:
+    """Return every version entry bioRxiv holds for one preprint DOI.
+
+    The other direction of the same API: `fetch_abstracts` scans a date window
+    because bioRxiv has no keyword search, while this resolves a DOI that is
+    already known. `scripts/scaffold_gold.py` needs the second — the human has
+    chosen the paper and wants its metadata — and putting it here rather than in
+    the scripts layer keeps one module responsible for what the bioRxiv API
+    returns and what its status strings mean.
+
+    Entries come back oldest version first, as the API orders them. An empty
+    list means bioRxiv has no such preprint: the API answers a DOI it does not
+    know with `status: no posts found` and an empty collection, which is an
+    answer rather than a fault, so it is not raised.
+    """
+    url = f"{API_BASE}/{doi}"
+    with ExitStack() as stack:
+        if client is None:
+            client = stack.enter_context(httpx.Client(timeout=TIMEOUT))
+        entries, exhausted = _fetch_page(client, url, sleep=sleep, policy=policy)
+    return [] if exhausted else entries
+
+
 def fetch_abstracts(
     query: str,
     limit: int,

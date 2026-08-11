@@ -1168,6 +1168,28 @@ def make_abstract_lookup(*, offline: bool, refresh: bool) -> Callable[[str], str
     return lookup
 
 
+def make_biorxiv_abstract_lookup(*, offline: bool, refresh: bool) -> Callable[[str], str | None]:
+    """Return `doi -> bioRxiv abstract`, cached on disk, or a cache-only stand-in.
+
+    The bioRxiv twin of `make_abstract_lookup`, and the same protocol: `None`
+    means bioRxiv has no abstract for that preprint, and anything that could not
+    be determined raises, so an unreachable API is never mistaken for an answer.
+    """
+    import biorxiv_lookup
+
+    def lookup(doi: str) -> str | None:
+        if offline:
+            record = biorxiv_lookup.read_cache(doi)
+            if record is None:
+                raise LookupError(
+                    f"no cached bioRxiv record for {doi}; run without --offline once"
+                )
+            return record.abstract
+        return biorxiv_lookup.fetch_record(doi, refresh=refresh).abstract
+
+    return lookup
+
+
 def make_full_text_lookup(*, offline: bool, refresh: bool) -> Callable[[str], str | None]:
     """Return `pmid -> PMC full text`, where None means "not in PMC open access".
 
@@ -1198,12 +1220,18 @@ def check_file(
     validator,
     abstract_for: Callable[[str], str | None] | None,
     full_text_for: Callable[[str], str | None] | None = None,
+    biorxiv_abstract_for: Callable[[str], str | None] | None = None,
 ) -> FileReport:
     """Run every per-file check. Never raises for bad input: that is a result.
 
     `abstract_for=None` is `--no-quotes`: the quote check does not run at all.
     `full_text_for=None` is narrower — abstract quotes are still checked, and
     full-text quotes are reported as skipped rather than silently passed.
+
+    `paper.source` chooses which abstract a record's quotes are checked against:
+    `biorxiv` uses `biorxiv_abstract_for`, keyed by DOI, and everything else uses
+    `abstract_for`, keyed by PMID. Three lookups rather than one because the
+    identifiers differ; the comparison they feed is the same in both cases.
     """
     report = FileReport(path=path)
 
@@ -1225,16 +1253,26 @@ def check_file(
     report.schema_errors = check_schema(document, validator, strip=not is_gold)
     report.issues += check_draft_markers(document)
 
-    paper = document.get("paper")
-    pmid = paper.get("pmid") if isinstance(paper, dict) else None
+    paper = document.get("paper") if isinstance(document.get("paper"), dict) else {}
+    pmid = paper.get("pmid")
+    doi = paper.get("doi")
+    is_preprint = paper.get("source") == "biorxiv"
 
     if abstract_for is None:
         report.issues.append(Issue(INFO, "quote check disabled (--no-quotes)"))
         return report
+
+    if is_preprint:
+        report.quote_results = check_quotes(
+            document,
+            _preprint_abstract(doi, biorxiv_abstract_for, report),
+            _preprint_full_text(document, report),
+        )
+        return report
+
     if not pmid:
-        # Legitimate for a preprint: the schema allows a null PMID. There is
-        # simply no PubMed abstract to check against, and saying so is more
-        # useful than counting the quotes as passed.
+        # A `source: pubmed` record with no PMID. Legitimate for a paper PubMed
+        # has not indexed, and there is simply no abstract to check against.
         report.issues.append(Issue(WARN, "paper.pmid is null — quotes not checked against PubMed"))
         return report
 
@@ -1253,6 +1291,59 @@ def check_file(
     report.full_text = full_text
     report.quote_results = check_quotes(document, abstract, full_text)
     return report
+
+
+def _preprint_abstract(
+    doi: Any,
+    biorxiv_abstract_for: Callable[[str], str | None] | None,
+    report: FileReport,
+) -> str | None:
+    """The bioRxiv abstract a preprint's quotes are checked against.
+
+    A preprint is identified by DOI, not PMID, so this is the one place the two
+    sources part company. Everything else about the quote check is identical:
+    the same verbatim comparison against the same kind of abstract, cached the
+    same way.
+    """
+    if not isinstance(doi, str) or not doi:
+        report.issues.append(
+            Issue(WARN, "paper.doi is missing — a preprint's quotes are checked by DOI")
+        )
+        return None
+    if biorxiv_abstract_for is None:
+        report.issues.append(
+            Issue(WARN, "no bioRxiv lookup configured — quotes not checked against bioRxiv")
+        )
+        return None
+    try:
+        abstract = biorxiv_abstract_for(doi)
+    except Exception as exc:  # noqa: BLE001 - one unreachable paper must not abort the run
+        report.issues.append(Issue(WARN, f"could not fetch bioRxiv abstract for {doi}: {exc}"))
+        return None
+    if abstract is None:
+        report.issues.append(Issue(WARN, f"no abstract available for {doi} — quotes not checked"))
+    return abstract
+
+
+def _preprint_full_text(document: dict[str, Any], report: FileReport) -> object | None:
+    """Full-text quotes on a preprint are unverifiable, and that is not a bug.
+
+    bioRxiv full text exists — every preprint carries a JATS XML link — but it is
+    not in PMC, and PMC is what this checker verifies against. Rather than
+    silently passing a quote nothing has read, or failing one that is probably
+    fine, a preprint's full-text quotes are reported `unverifiable`, exactly as
+    for a paper outside the PMC open-access subset. Same consequence too:
+    a warning on a run, and a refusal on `--promote`.
+
+    Returns None when the document has no full-text quotes, so a preprint
+    labelled entirely from its abstract emits no warning at all.
+    """
+    if not any(source == FULL_TEXT for _, _, source in iter_quotes(document)):
+        return None
+    report.issues.append(
+        Issue(WARN, "bioRxiv full text is not in PMC — full_text quotes cannot be verified")
+    )
+    return NOT_IN_PMC
 
 
 def _full_text_for_document(
@@ -1451,12 +1542,18 @@ def main(argv: list[str] | None = None) -> int:
     paths = resolve_paths(args)
     validator, schema_version = load_schema()
 
-    abstract_for = full_text_for = None
+    abstract_for = full_text_for = biorxiv_abstract_for = None
     if not args.no_quotes:
         abstract_for = make_abstract_lookup(offline=args.offline, refresh=args.refresh)
         full_text_for = make_full_text_lookup(offline=args.offline, refresh=args.refresh)
+        biorxiv_abstract_for = make_biorxiv_abstract_lookup(
+            offline=args.offline, refresh=args.refresh
+        )
 
-    reports = [check_file(path, validator, abstract_for, full_text_for) for path in paths]
+    reports = [
+        check_file(path, validator, abstract_for, full_text_for, biorxiv_abstract_for)
+        for path in paths
+    ]
     cross = check_cross_file(reports)
     pairs = check_pairs(reports)
     render(reports, cross, pairs)

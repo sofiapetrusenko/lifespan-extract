@@ -1,9 +1,17 @@
 #!/usr/bin/env python3
-"""Seed a gold-set draft from a PMID: metadata and abstract, nothing else.
+"""Seed a gold-set draft from a PMID or a bioRxiv DOI: metadata and abstract.
 
 Usage:
-    python scripts/scaffold_gold.py <pmid> <slug>
+    python scripts/scaffold_gold.py <pmid|doi> <slug>
     python scripts/scaffold_gold.py 19587680 harrison2009
+    python scripts/scaffold_gold.py 10.1101/2025.08.31.673254 green2025
+
+The identifier is dispatched on its shape — all digits is a PMID, `10.NNNN/...`
+is a bioRxiv DOI — because those two forms cannot be confused for each other and
+a flag would be one more thing to get wrong. A preprint record comes out with
+`source: "biorxiv"` and `pmid: null`, which the schema has always permitted:
+`paper.required` is doi/title/year/source, and `pmid` is documented "null for
+preprints not yet indexed".
 
 Writes `data/drafts/<slug>.json`. It never writes to `data/gold/` — that
 directory is human-labelled ground truth, and moving a finished draft into it
@@ -54,6 +62,13 @@ SCHEMA_VERSION_KEY = "x-schema-version"
 # three steps later. It also rules out path separators.
 SLUG_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 
+# Identifier dispatch. The two forms are disjoint — a PMID is digits only and a
+# DOI must start `10.` and contain a slash — so the shape decides which lookup
+# runs and a mistyped identifier fails at the CLI rather than as a confusing
+# error from the wrong client.
+PMID_RE = re.compile(r"^\d+$")
+DOI_RE = re.compile(r"^10\.\d{4,9}/\S+$")
+
 # The two draft markers. `check_gold.py` imports these and fails on either, so
 # they are the reason a placeholder record cannot be mistaken for a labelled
 # one. Changing them means changing both tools.
@@ -61,7 +76,7 @@ DRAFT_ID_SUFFIX = "-todo"
 DRAFT_NOTE_PREFIX = "DRAFT"
 
 DRAFT_NOTE = (
-    "DRAFT — scaffolded from the PubMed record by scripts/scaffold_gold.py. "
+    "DRAFT — scaffolded from the source record by scripts/scaffold_gold.py. "
     "Every value in this experiment is a placeholder, including organism, "
     "intervention.type and lifespan_effect.direction, which the schema forces "
     "to a closed enum with no unlabelled member. Replace them all, give the "
@@ -102,10 +117,15 @@ def build_skeleton(record, slug: str, schema_version: str) -> dict[str, Any]:
     Pure: no I/O, no network. `record` is a `pubmed_lookup.PubMedRecord`, but
     only its attributes are touched, so a stand-in works in tests.
 
-    `doi` and `year` are omitted rather than faked when PubMed does not report
-    them. Both are schema-required, so the draft is then invalid — which is the
-    point: the missing field shows up as a validation error naming it, instead
-    of as a plausible-looking wrong value nobody rechecks.
+    `doi` and `year` are omitted rather than faked when the source does not
+    report them. Both are schema-required, so the draft is then invalid — which
+    is the point: the missing field shows up as a validation error naming it,
+    instead of as a plausible-looking wrong value nobody rechecks.
+
+    Works for a `pubmed_lookup.PubMedRecord` or a `biorxiv_lookup.BioRxivRecord`
+    without asking which it has: both carry `.source`, `.pmid`, `.doi`, `.title`,
+    `.year`, `.journal` and `.abstract`, and for a preprint `.pmid` is None and
+    `.journal` is the server name.
     """
     paper: dict[str, Any] = {}
     if record.doi:
@@ -113,7 +133,7 @@ def build_skeleton(record, slug: str, schema_version: str) -> dict[str, Any]:
     paper["title"] = record.title
     if record.year is not None:
         paper["year"] = record.year
-    paper["source"] = "pubmed"
+    paper["source"] = record.source
     paper["pmid"] = record.pmid
 
     document: dict[str, Any] = {
@@ -200,7 +220,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         prog="scaffold_gold.py",
         description="Seed data/drafts/<slug>.json from a PMID. Metadata and abstract only.",
     )
-    parser.add_argument("pmid", help="PubMed ID, digits only")
+    parser.add_argument(
+        "identifier",
+        help="PubMed ID (digits only) or bioRxiv DOI (10.NNNN/...)",
+    )
     parser.add_argument("slug", help="draft filename stem, e.g. harrison2009")
     parser.add_argument(
         "--force",
@@ -210,7 +233,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--refresh",
         action="store_true",
-        help="bypass the abstract cache and refetch from PubMed",
+        help="bypass the abstract cache and refetch from the source",
     )
     return parser.parse_args(argv)
 
@@ -237,9 +260,9 @@ def main(argv: list[str] | None = None, fetch: Any | None = None) -> int:
     if fetch is None:
         # Imported here, not at module scope: `build_skeleton` and the schema
         # round-trip are worth testing without httpx installed.
-        from pubmed_lookup import fetch_record as fetch
+        fetch = _lookup_for(args.identifier)
 
-    record = fetch(args.pmid, refresh=args.refresh)
+    record = fetch(args.identifier, refresh=args.refresh)
 
     document = build_skeleton(record, args.slug, read_schema_version())
     DRAFTS_DIR.mkdir(parents=True, exist_ok=True)
@@ -249,13 +272,51 @@ def main(argv: list[str] | None = None, fetch: Any | None = None) -> int:
     return 0
 
 
+def _lookup_for(identifier: str):
+    """Return the fetch function for this identifier's shape.
+
+    Raises `SystemExit` rather than defaulting to one of the two: a typo that
+    silently became a PubMed query would report "PMID not found" for a DOI, and
+    the operator would go looking in the wrong database.
+    """
+    if PMID_RE.match(identifier):
+        from pubmed_lookup import fetch_record
+
+        return fetch_record
+    if DOI_RE.match(identifier):
+        from biorxiv_lookup import fetch_record
+
+        return fetch_record
+    raise SystemExit(
+        f"{identifier!r} is neither a PMID (digits only) nor a DOI (10.NNNN/suffix)"
+    )
+
+
 def _report(record, document: dict[str, Any], destination: Path) -> None:
+    unknown = f"(not reported by {record.source})"
     print(f"wrote {destination.relative_to(REPO_ROOT)}")
-    print(f"  pmid     {record.pmid}")
-    print(f"  doi      {record.doi or '(not reported by PubMed)'}")
+    print(f"  source   {record.source}")
+    print(f"  pmid     {record.pmid if record.pmid else '(none — preprint)'}")
+    print(f"  doi      {record.doi or unknown}")
     print(f"  title    {_truncate(record.title)}")
-    print(f"  journal  {record.journal or '(not reported by PubMed)'}")
-    print(f"  year     {record.year if record.year is not None else '(not reported by PubMed)'}")
+    print(f"  journal  {record.journal or unknown}")
+    print(f"  year     {record.year if record.year is not None else unknown}")
+
+    posted = getattr(record, "posted", None)
+    if posted:
+        latest = getattr(record, "latest_posted", None)
+        version = getattr(record, "version", None)
+        revised = f", latest v{version} {latest}" if latest and latest != posted else ""
+        print(f"  posted   {posted}{revised} — year is taken from the first posting")
+
+    # A preprint that has since been published is the same work reachable
+    # through PubMed, usually with a PMID and often with PMC full text. Said
+    # loudly because the published version is the better record and the
+    # difference is invisible once the draft is written.
+    if getattr(record, "is_published", False):
+        print(f"  PUBLISHED  bioRxiv reports journal DOI {record.published_doi} for this "
+              "preprint.\n             The published version will have a PMID and may be in "
+              "PMC; prefer it\n             unless this draft is deliberately about the preprint.")
 
     if record.abstract:
         print(f"  abstract {len(record.abstract)} chars, embedded as _abstract")
@@ -263,7 +324,7 @@ def _report(record, document: dict[str, Any], destination: Path) -> None:
         # Worth saying loudly: with no abstract there is nothing for the
         # verbatim quote check to match against, so every quote in the finished
         # record will have to come from full text.
-        print("  abstract (none in PubMed — every source_quote will be full_text)")
+        print(f"  abstract (none in {record.source} — every source_quote will be full_text)")
 
     problems = validation_errors(document)
     print()

@@ -1,4 +1,4 @@
-"""Tests for scripts/scaffold_gold.py. The PubMed fetch is stubbed out."""
+"""Tests for scripts/scaffold_gold.py. Both fetches are stubbed out."""
 
 from __future__ import annotations
 
@@ -19,12 +19,53 @@ from scaffold_gold import (
 
 @dataclass
 class FakeRecord:
+    """Stands in for a `pubmed_lookup.PubMedRecord`."""
+
     pmid: str = "19587680"
     title: str = "Rapamycin fed late in life extends lifespan"
     journal: str | None = "Nature"
     year: int | None = 2009
     doi: str | None = "10.1038/nature08221"
     abstract: str | None = "Rapamycin extends median and maximal lifespan of mice."
+
+    @property
+    def source(self) -> str:
+        return "pubmed"
+
+
+@dataclass
+class FakePreprint:
+    """Stands in for a `biorxiv_lookup.BioRxivRecord`.
+
+    Same attribute surface as FakeRecord plus the preprint-only fields, which is
+    the property `build_skeleton` relies on to read either without a branch.
+    """
+
+    doi: str = "10.1101/2025.08.31.673254"
+    title: str = "Lifelong restriction of dietary valine has sex-specific benefits"
+    year: int | None = 2025
+    abstract: str | None = "Val-R extends the lifespan of male, but not female, mice by 23%."
+    posted: str | None = "2025-09-04"
+    latest_posted: str | None = "2026-04-02"
+    version: int | None = 2
+    server: str | None = "bioRxiv"
+    published_doi: str | None = None
+
+    @property
+    def source(self) -> str:
+        return "biorxiv"
+
+    @property
+    def pmid(self) -> None:
+        return None
+
+    @property
+    def journal(self) -> str | None:
+        return self.server
+
+    @property
+    def is_published(self) -> bool:
+        return self.published_doi is not None
 
 
 @pytest.fixture
@@ -196,3 +237,76 @@ def test_main_reports_when_the_draft_is_not_yet_valid(drafts, capsys):
     fetch = StubFetch(FakeRecord(doi=None))
     main(["19587680", "nodoi2020"], fetch=fetch)
     assert "NOT yet schema-valid" in capsys.readouterr().out
+
+
+# --------------------------------------------------------------------------
+# bioRxiv preprints: a DOI instead of a PMID
+# --------------------------------------------------------------------------
+
+
+def test_preprint_skeleton_is_schema_valid(schema_version):
+    """The schema has always allowed this: paper.required is doi/title/year/source."""
+    document = build_skeleton(FakePreprint(), "green2025", schema_version)
+    assert validation_errors(document) == []
+
+
+def test_preprint_skeleton_carries_biorxiv_source_and_null_pmid(schema_version):
+    document = build_skeleton(FakePreprint(), "green2025", schema_version)
+    assert document["paper"] == {
+        "doi": "10.1101/2025.08.31.673254",
+        "title": "Lifelong restriction of dietary valine has sex-specific benefits",
+        "year": 2025,
+        "source": "biorxiv",
+        "pmid": None,
+    }
+
+
+def test_preprint_embeds_the_abstract_exactly_as_the_pubmed_path_does(schema_version):
+    document = build_skeleton(FakePreprint(), "green2025", schema_version)
+    assert document["_abstract"] == FakePreprint().abstract
+    assert document["_journal"] == "bioRxiv"
+
+
+def test_pubmed_path_is_unchanged_by_the_preprint_support(schema_version):
+    """Regression guard: PMIDs must keep working exactly as before."""
+    document = build_skeleton(FakeRecord(), "harrison2009", schema_version)
+    assert document["paper"]["source"] == "pubmed"
+    assert document["paper"]["pmid"] == "19587680"
+    assert validation_errors(document) == []
+
+
+def test_lookup_dispatch_picks_the_client_from_the_identifier_shape():
+    pubmed = scaffold_gold._lookup_for("19587680")
+    biorxiv = scaffold_gold._lookup_for("10.1101/2025.08.31.673254")
+    assert pubmed.__module__ == "pubmed_lookup"
+    assert biorxiv.__module__ == "biorxiv_lookup"
+
+
+def test_lookup_dispatch_refuses_an_identifier_that_is_neither():
+    """Defaulting to PubMed would report 'PMID not found' for a typo'd DOI."""
+    with pytest.raises(SystemExit, match="neither a PMID"):
+        scaffold_gold._lookup_for("not-an-identifier")
+
+
+def test_main_writes_a_preprint_draft(drafts, capsys):
+    assert main(["10.1101/2025.08.31.673254", "green2025"],
+                fetch=lambda identifier, refresh=False: FakePreprint()) == 0
+
+    written = json.loads((drafts / "green2025.json").read_text())
+    assert written["paper"]["source"] == "biorxiv"
+    assert written["paper"]["pmid"] is None
+    out = capsys.readouterr().out
+    assert "source   biorxiv" in out
+    assert "(none — preprint)" in out
+    assert "posted   2025-09-04, latest v2 2026-04-02" in out
+
+
+def test_main_warns_loudly_when_the_preprint_has_been_published(drafts, capsys):
+    """The Gcgr trap: a published preprint is the same work with a PMID and
+    often PMC full text, and the difference is invisible once the draft exists."""
+    record = FakePreprint(published_doi="10.1007/s11357-025-01899-w")
+    main(["10.1101/2025.05.13.653849", "stern2025"], fetch=lambda i, refresh=False: record)
+
+    out = capsys.readouterr().out
+    assert "PUBLISHED" in out
+    assert "10.1007/s11357-025-01899-w" in out
