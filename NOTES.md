@@ -221,3 +221,17 @@ The CR-in-macaques pair (Colman 2009 / Mattison 2012) is the strongest conflicti
 Neither Colman 2009 nor Mattison 2012 is in `data/gold/` yet. The gold set currently holds five files — `harrison2009`, `kenyon1993`, `lakowski1998`, `martinmontalvo2013`, `strong2016` — against the ten PLAN.md Phase 0 calls for; the macaque pair is part of that design, not of the labelled corpus. So no record uses `M. mulatta` today, and nothing was relabelled: the enum was widened ahead of the papers that need it, which is the right order given `data/gold/` is human-only. Whoever labels the pair writes `M. mulatta` directly and never passes through `other`.
 
 `schema_version` `examples` in the schema still reads `["0.2.1"]`, deliberately: it illustrates the record-level pattern, and `0.2.1` is what every gold file on disk actually declares. Per the "two versions, deliberately" note under v0.2.1, the root `x-schema-version` is the single source of truth for the schema's own version, and that is what was bumped.
+
+---
+
+## 2026-08-11 — schema limitation found while labeling Miller 2011
+
+**`lifespan_effect` carries one `direction` for the whole claim.** There is no per-statistic direction, so a paper that reports a *numeric* change in one statistic and a *qualitative* change in another cannot express the second one as a row of its own.
+
+Miller 2011 is the case that surfaced it. Its abstract gives median survival as a number — "extended by an average of 10% in males and 18% in females" — and asserts a maximum-lifespan increase with no number attached: "produced significant increases in life span, including maximum life span, at each of three test sites." The median claim fits: `median_change_pct` 10 / 18, `direction: increase`. The max claim has nowhere to go. `max_change_pct` is `claim_number_nullable`, so it cannot hold `"not_reported"` — number or null, nothing else — and `direction` is already spent on the record as a whole.
+
+**Workaround in the draft, so the claim is not simply lost:** `max_change_pct` is `null` with a `null` `source_quote`, and `lifespan_effect.direction` takes as its `source_quote` the sentence containing "including maximum life span". The increase in maximum lifespan is therefore recorded only in the provenance of a different field.
+
+**What that costs.** `max_change_pct: null` now means two different things and nothing distinguishes them: "the paper says nothing about maximum lifespan" and "the paper says maximum lifespan increased but gives no number". Phase 3 per-field eval scores `max_change_pct` on the value alone, so both read as an unremarkable null and a model that correctly extracts the qualitative max claim gets no credit for it — the same blindness the median/mean/max split under v0.2.0 was created to avoid, one level down. It is also a `not_reported`-honesty problem in the direction PLAN.md Phase 3 already flags: absence and unquantified-presence are not the same answer.
+
+**Candidate for v0.4.0.** Not designed here, and deliberately not fixed unilaterally mid-labeling — it changes the shape of every `lifespan_effect`. The two obvious shapes are a per-statistic direction (each `_change_pct` gains a sibling direction, verbose but symmetric) or a nullable qualitative member on the numeric wrappers themselves. Both are additive and neither invalidates an existing record. Whichever is chosen, the Miller 2011 draft is the migration test case.

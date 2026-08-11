@@ -1,0 +1,380 @@
+{
+  "schema_version": "0.2.1",
+  "paper": {
+    "doi": "10.1093/gerona/glq178",
+    "title": "Rapamycin, but not resveratrol or simvastatin, extends life span of genetically heterogeneous mice.",
+    "year": 2011,
+    "source": "pubmed",
+    "pmid": "20974732"
+  },
+  "experiments": [
+    {
+      "experiment_id": "miller2011-mmusculus-rapamycin-male",
+      "organism": {
+        "value": "M. musculus",
+        "source_quote": "Rapamycin was administered in food to genetically heterogeneous mice from the age of 9 months and produced significant increases in life span, including maximum life span, at each of three test sites.",
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "strain": {
+        "value": "genetically heterogeneous",
+        "source_quote": "Rapamycin was administered in food to genetically heterogeneous mice from the age of 9 months and produced significant increases in life span, including maximum life span, at each of three test sites.",
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "sex": {
+        "value": "male",
+        "source_quote": "Median survival was extended by an average of 10% in males and 18% in females.",
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "sample_size": {
+        "value": null,
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "intervention": {
+        "type": {
+          "value": "pharmacological",
+          "source_quote": "Rapamycin was administered in food to genetically heterogeneous mice from the age of 9 months and produced significant increases in life span, including maximum life span, at each of three test sites.",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "agent": {
+          "value": "rapamycin",
+          "source_quote": "Rapamycin was administered in food to genetically heterogeneous mice from the age of 9 months and produced significant increases in life span, including maximum life span, at each of three test sites.",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "dose": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "age_at_start": {
+          "value": "9 months",
+          "source_quote": "Rapamycin was administered in food to genetically heterogeneous mice from the age of 9 months and produced significant increases in life span, including maximum life span, at each of three test sites.",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        }
+      },
+      "mechanism": {
+        "value": null,
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "lifespan_effect": {
+        "direction": {
+          "value": "increase",
+          "source_quote": "Rapamycin was administered in food to genetically heterogeneous mice from the age of 9 months and produced significant increases in life span, including maximum life span, at each of three test sites.",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "median_change_pct": {
+          "value": 10,
+          "source_quote": "Median survival was extended by an average of 10% in males and 18% in females.",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "mean_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "max_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "p_value": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        }
+      },
+      "notes": "Administered in food. The 10% and 18% median figures are averages across three test sites."
+    },
+    {
+      "experiment_id": "miller2011-mmusculus-rapamycin-female",
+      "organism": {
+        "value": "M. musculus",
+        "source_quote": "Rapamycin was administered in food to genetically heterogeneous mice from the age of 9 months and produced significant increases in life span, including maximum life span, at each of three test sites.",
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "strain": {
+        "value": "genetically heterogeneous",
+        "source_quote": "Rapamycin was administered in food to genetically heterogeneous mice from the age of 9 months and produced significant increases in life span, including maximum life span, at each of three test sites.",
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "sex": {
+        "value": "female",
+        "source_quote": "Median survival was extended by an average of 10% in males and 18% in females.",
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "sample_size": {
+        "value": null,
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "intervention": {
+        "type": {
+          "value": "pharmacological",
+          "source_quote": "Rapamycin was administered in food to genetically heterogeneous mice from the age of 9 months and produced significant increases in life span, including maximum life span, at each of three test sites.",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "agent": {
+          "value": "rapamycin",
+          "source_quote": "Rapamycin was administered in food to genetically heterogeneous mice from the age of 9 months and produced significant increases in life span, including maximum life span, at each of three test sites.",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "dose": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "age_at_start": {
+          "value": "9 months",
+          "source_quote": "Rapamycin was administered in food to genetically heterogeneous mice from the age of 9 months and produced significant increases in life span, including maximum life span, at each of three test sites.",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        }
+      },
+      "mechanism": {
+        "value": null,
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "lifespan_effect": {
+        "direction": {
+          "value": "increase",
+          "source_quote": "Rapamycin was administered in food to genetically heterogeneous mice from the age of 9 months and produced significant increases in life span, including maximum life span, at each of three test sites.",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "median_change_pct": {
+          "value": 18,
+          "source_quote": "Median survival was extended by an average of 10% in males and 18% in females.",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "mean_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "max_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "p_value": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        }
+      },
+      "notes": "Administered in food. The 10% and 18% median figures are averages across three test sites."
+    },
+    {
+      "experiment_id": "miller2011-mmusculus-resveratrol",
+      "organism": {
+        "value": "M. musculus",
+        "source_quote": "Resveratrol (at 300 and 1200 ppm food) and simvastatin (12 and 120 ppm) did not have significant effects on survival in male or female mice.",
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "strain": {
+        "value": "not_reported",
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "sex": {
+        "value": "mixed",
+        "source_quote": "Resveratrol (at 300 and 1200 ppm food) and simvastatin (12 and 120 ppm) did not have significant effects on survival in male or female mice.",
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "sample_size": {
+        "value": null,
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "intervention": {
+        "type": {
+          "value": "pharmacological",
+          "source_quote": "Resveratrol (at 300 and 1200 ppm food) and simvastatin (12 and 120 ppm) did not have significant effects on survival in male or female mice.",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "agent": {
+          "value": "resveratrol",
+          "source_quote": "Resveratrol (at 300 and 1200 ppm food) and simvastatin (12 and 120 ppm) did not have significant effects on survival in male or female mice.",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "dose": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "age_at_start": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        }
+      },
+      "mechanism": {
+        "value": null,
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "lifespan_effect": {
+        "direction": {
+          "value": "no_effect",
+          "source_quote": "Resveratrol (at 300 and 1200 ppm food) and simvastatin (12 and 120 ppm) did not have significant effects on survival in male or female mice.",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "median_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "mean_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "max_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "p_value": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        }
+      },
+      "notes": "Cohort variants: 300 and 1200 ppm food."
+    },
+    {
+      "experiment_id": "miller2011-mmusculus-simvastatin",
+      "organism": {
+        "value": "M. musculus",
+        "source_quote": "Resveratrol (at 300 and 1200 ppm food) and simvastatin (12 and 120 ppm) did not have significant effects on survival in male or female mice.",
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "strain": {
+        "value": "not_reported",
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "sex": {
+        "value": "mixed",
+        "source_quote": "Resveratrol (at 300 and 1200 ppm food) and simvastatin (12 and 120 ppm) did not have significant effects on survival in male or female mice.",
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "sample_size": {
+        "value": null,
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "intervention": {
+        "type": {
+          "value": "pharmacological",
+          "source_quote": "Resveratrol (at 300 and 1200 ppm food) and simvastatin (12 and 120 ppm) did not have significant effects on survival in male or female mice.",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "agent": {
+          "value": "simvastatin",
+          "source_quote": "Resveratrol (at 300 and 1200 ppm food) and simvastatin (12 and 120 ppm) did not have significant effects on survival in male or female mice.",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "dose": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "age_at_start": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        }
+      },
+      "mechanism": {
+        "value": null,
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "lifespan_effect": {
+        "direction": {
+          "value": "no_effect",
+          "source_quote": "Resveratrol (at 300 and 1200 ppm food) and simvastatin (12 and 120 ppm) did not have significant effects on survival in male or female mice.",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "median_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "mean_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "max_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "p_value": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        }
+      },
+      "notes": "Cohort variants: 12 and 120 ppm."
+    }
+  ]
+}
