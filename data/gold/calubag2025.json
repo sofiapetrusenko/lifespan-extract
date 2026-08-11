@@ -1,0 +1,208 @@
+{
+  "schema_version": "0.4.0",
+  "paper": {
+    "doi": "10.1101/2025.08.31.673254",
+    "title": "Lifelong restriction of dietary valine has sex-specific benefits for health and lifespan in mice",
+    "year": 2025,
+    "source": "biorxiv",
+    "pmid": null
+  },
+  "experiments": [
+    {
+      "experiment_id": "calubag2025-mmusculus-valine-restriction-male",
+      "organism": {
+        "value": "M. musculus",
+        "source_quote": "valine restriction (Val-R) improves metabolic health in C57BL/6J mice",
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "species": {
+        "value": null,
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "strain": {
+        "value": "C57BL/6J",
+        "source_quote": "valine restriction (Val-R) improves metabolic health in C57BL/6J mice",
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "sex": {
+        "value": "male",
+        "source_quote": "extends the lifespan of male, but not female, mice by 23%",
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "sample_size": {
+        "value": null,
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "intervention": {
+        "type": {
+          "value": "dietary",
+          "source_quote": "we test the effect of lifelong restriction of the BCAA valine on healthy aging",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "agent": {
+          "value": "valine restriction",
+          "source_quote": "we test the effect of lifelong restriction of the BCAA valine on healthy aging",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "dose": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "age_at_start": {
+          "value": "lifelong",
+          "source_quote": "we test the effect of lifelong restriction of the BCAA valine on healthy aging",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        }
+      },
+      "mechanism": {
+        "value": null,
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "lifespan_effect": {
+        "direction": {
+          "value": "increase",
+          "source_quote": "extends the lifespan of male, but not female, mice by 23%",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "median_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "mean_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "max_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "p_value": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        }
+      },
+      "notes": "Lifespan extended in males. The abstract gives the size as an unqualified '23%' without naming median, mean or maximum, so every numeric lifespan field is null: this project does not substitute one statistic for another. The figure is recorded here instead - +23% in males, statistic unspecified. See the NOTES.md entry of 2026-08-11 on the unqualified-percentage gap. Healthspan, not lifespan: Val-R promotes leanness and glycemic control across ages and reduces frailty, cancer prevalence and senescent cell burden in multiple tissues in both sexes, and reduces glial activation in the brain in a male-specific manner. None of those is a lifespan result and none is recorded as one. Associated molecular finding, not a claimed mechanism: the abstract identifies a Val-R-induced male-specific increase in mitochondrial respiration, but does not state that it mediates the lifespan effect, so mechanism is null - contrast Eisenberg 2009, where autophagy is called 'crucial for' the effect. Excluded as other work: the isoleucine result is the authors' PRIOR paper ('we recently found...'), and the claim that BCAA restriction extends healthspan and lifespan is background literature. Neither is a finding of this study; neither appears as a record, a value or a source_quote. dose and sample_size are null because the abstract states neither."
+    },
+    {
+      "experiment_id": "calubag2025-mmusculus-valine-restriction-female",
+      "organism": {
+        "value": "M. musculus",
+        "source_quote": "valine restriction (Val-R) improves metabolic health in C57BL/6J mice",
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "species": {
+        "value": null,
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "strain": {
+        "value": "C57BL/6J",
+        "source_quote": "valine restriction (Val-R) improves metabolic health in C57BL/6J mice",
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "sex": {
+        "value": "female",
+        "source_quote": "extends the lifespan of male, but not female, mice by 23%",
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "sample_size": {
+        "value": null,
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "intervention": {
+        "type": {
+          "value": "dietary",
+          "source_quote": "we test the effect of lifelong restriction of the BCAA valine on healthy aging",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "agent": {
+          "value": "valine restriction",
+          "source_quote": "we test the effect of lifelong restriction of the BCAA valine on healthy aging",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "dose": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "age_at_start": {
+          "value": "lifelong",
+          "source_quote": "we test the effect of lifelong restriction of the BCAA valine on healthy aging",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        }
+      },
+      "mechanism": {
+        "value": null,
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "lifespan_effect": {
+        "direction": {
+          "value": "no_effect",
+          "source_quote": "extends the lifespan of male, but not female, mice by 23%",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "median_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "mean_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "max_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "p_value": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        }
+      },
+      "notes": "No lifespan extension in females: the abstract states Val-R 'extends the lifespan of male, but not female, mice', which is a reported null result rather than an absence of data, so direction is no_effect. Every numeric lifespan field is null - no female lifespan statistic is reported, and the percentage the abstract gives is the male result, recorded on the male record. Healthspan, not lifespan: Val-R promotes leanness and glycemic control across ages and reduces frailty, cancer prevalence and senescent cell burden in multiple tissues in both sexes, and reduces glial activation in the brain in a male-specific manner. None of those is a lifespan result and none is recorded as one. Associated molecular finding, not a claimed mechanism: the abstract identifies a Val-R-induced male-specific increase in mitochondrial respiration, but does not state that it mediates the lifespan effect, so mechanism is null - contrast Eisenberg 2009, where autophagy is called 'crucial for' the effect. Excluded as other work: the isoleucine result is the authors' PRIOR paper ('we recently found...'), and the claim that BCAA restriction extends healthspan and lifespan is background literature. Neither is a finding of this study; neither appears as a record, a value or a source_quote. dose and sample_size are null because the abstract states neither."
+    }
+  ]
+}

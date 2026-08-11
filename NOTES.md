@@ -478,3 +478,37 @@ Caught late — the `published` field was in the bioRxiv API payload from the fi
 ### Live instance of the known preprint/publication dedup gap
 
 This is the case the bioRxiv module's docstring and the "Known limitations" entry describe in the abstract: preprint ingested first, publication appearing later, the two not collapsing across runs. Here the preprint DOI `10.1101/2025.05.13.653849` and the journal DOI `10.1007/s11357-025-01899-w` are the same work, and only the bioRxiv `published` field connects them. `fetch_detail` surfaces that field, so a future dedup pass has something to key on; nothing consumes it yet.
+
+---
+
+## 2026-08-11 — schema limitation found while labeling Calubag 2025: the unqualified percentage
+
+### The gap
+
+**A lifespan percentage stated without naming its statistic has no field.** `lifespan_effect` carries `median_change_pct`, `mean_change_pct` and `max_change_pct`, and every one of them names a statistic. A paper that reports a size without saying which — "extends the lifespan of male, but not female, mice by 23%" — cannot be recorded quantitatively at all, because there is no field that means "23%, statistic unspecified".
+
+The fifth gap, and the first found in a preprint. Abstracts are where it will keep appearing: a journal abstract that reports a lifespan effect usually names the statistic, and a preprint abstract compressing a full paper often does not.
+
+### Interim treatment
+
+All four numeric fields null, the figure in `notes`, stated as an unqualified percentage. Same shape as Colman 2009's 80/50 and Strong 2016's summed `sample_size`, and for the same reason each time: a value the paper does not state in the form the field means does not go in the field.
+
+Forcing 23 into `median_change_pct` was considered and rejected on the argument already made for Colman: the decisive objection is not that the guess is probably wrong, it is what a wrong guess does to Phase 3. A gold record asserting a median the paper never named would penalise a model that correctly declines to guess, and turn the eval from a measure of extraction accuracy into a measure of willingness to invent. Median is the *likely* reading — most mouse lifespan papers lead with median — but likely is not stated, and this project's whole position is that the difference matters.
+
+### v0.5.0 direction
+
+Not a new field per case. The three named `_change_pct` fields already encode the statistic in the field name, which is what makes an unnamed statistic unrepresentable; adding `unqualified_change_pct` beside them repeats the mistake one column wider and leaves the next unnamed quantity homeless again.
+
+The direction worth designing is a **value plus a statistic qualifier** — one change-percentage member carrying its own `statistic` alongside it, with `median`, `mean`, `max` and **`unqualified`** in the qualifier's vocabulary. That subsumes the existing three fields rather than sitting beside them, so it is a breaking change and belongs in a major-ish bump with a migration, not in an additive release. It also interacts with gap 1 (per-statistic direction, Miller 2011): both want the statistic to become a value rather than a field name, and designing either without the other would mean doing the same migration twice.
+
+### Phase 3 consequence — this one needs an eval decision, not just a schema decision
+
+Worth stating separately, because it is the first gap whose cost lands in the eval rather than in the record. **A model that puts 23 in `median_change_pct` for this paper is not clearly wrong.** It has made a defensible reading of an ambiguous abstract, and the gold record says null. Under exact match that is a miss, scored identically to a model that invented a number from nothing — and those are not the same failure.
+
+So `lifespan_effect.median_change_pct` on `calubag2025` is a record where plain exact match reports something misleading in both directions: crediting null-vs-null tells you the model was cautious, not that it was right, and penalising 23-vs-null tells you it was wrong when it was merely decisive. This joins the free-text scoring question from the Mattison entry on the list of things Phase 3 must settle before the metric is written. A plausible answer is that fields null *because of a recorded ambiguity* are scored separately from fields null because the paper is silent — which needs the record to distinguish those two, and it currently cannot.
+
+### The other thing this paper needed: two records, opposite directions
+
+Not a gap, but the splitting rule's cleanest case so far. Val-R extends male lifespan and does not extend female lifespan, both stated in one sentence, so the Mattison rule — split when the source reports separate results — gives two records with `direction: increase` and `direction: no_effect` from a single quote. The female record is a *reported null*, not missing data, which is exactly the distinction `no_effect` exists to carry.
+
+Two of the abstract's claims are deliberately absent from the file: the isoleucine result is the authors' own prior paper ("we recently found..."), and the statement that BCAA restriction extends healthspan and lifespan is background literature. Neither is a finding of this study. They are recorded in `notes` as excluded, and a check in the labelling script asserted that neither sentence appears as a `value` or a `source_quote` anywhere in the record — the failure mode being a background sentence quoted as though the paper had demonstrated it.
