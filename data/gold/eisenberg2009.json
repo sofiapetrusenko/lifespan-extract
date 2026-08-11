@@ -1,0 +1,306 @@
+{
+  "schema_version": "0.4.0",
+  "paper": {
+    "doi": "10.1038/ncb1975",
+    "title": "Induction of autophagy by spermidine promotes longevity.",
+    "year": 2009,
+    "source": "pubmed",
+    "pmid": "19801973"
+  },
+  "experiments": [
+    {
+      "experiment_id": "eisenberg2009-celegans-spermidine",
+      "organism": {
+        "value": "C. elegans",
+        "source_quote": "Here, we report that administration of spermidine, a natural polyamine whose intracellular concentration declines during human ageing, markedly extended the lifespan of yeast, flies and worms, and human immune cells.",
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "species": {
+        "value": null,
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "strain": {
+        "value": "not_reported",
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "sex": {
+        "value": "not_reported",
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "sample_size": {
+        "value": null,
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "intervention": {
+        "type": {
+          "value": "pharmacological",
+          "source_quote": "administration of spermidine, a natural polyamine",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "agent": {
+          "value": "spermidine",
+          "source_quote": "administration of spermidine, a natural polyamine whose intracellular concentration declines during human ageing",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "dose": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "age_at_start": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        }
+      },
+      "mechanism": {
+        "value": "induction of autophagy",
+        "source_quote": "The altered acetylation status of the chromatin led to significant upregulation of various autophagy-related transcripts, triggering autophagy in yeast, flies, worms and human cells.",
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "lifespan_effect": {
+        "direction": {
+          "value": "increase",
+          "source_quote": "Here, we report that administration of spermidine, a natural polyamine whose intracellular concentration declines during human ageing, markedly extended the lifespan of yeast, flies and worms, and human immune cells.",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "median_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "mean_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "max_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "p_value": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        }
+      },
+      "notes": "Abstract-only record. Worms; species left null because the organism enum already names C. elegans. (i) Mice and human immune cells are deliberately excluded from this file. The abstract's only mouse statement concerns oxidative stress, not lifespan or survival; the human result is survival of immune cells in culture, which is a different quantity from organism lifespan despite the paper's wording. (ii) This paper is not in PMC (NCBI ID converter: 'Identifier not found in PMC'), so no full-text provenance is claimed and every quote here is extracted_from: abstract - which also means the absence of a mouse lifespan result is established from the abstract alone and not from the full text. (iii) All three organisms are covered by one sentence, so the three records share a single direction quote and are separated by organism per PLAN.md's (organism, intervention) rule, not by separate reported results. Every numeric lifespan field is null because the abstract states no percentage, no p-value and no n."
+    },
+    {
+      "experiment_id": "eisenberg2009-scerevisiae-spermidine",
+      "organism": {
+        "value": "other",
+        "source_quote": "Here, we report that administration of spermidine, a natural polyamine whose intracellular concentration declines during human ageing, markedly extended the lifespan of yeast, flies and worms, and human immune cells.",
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "species": {
+        "value": "S. cerevisiae",
+        "source_quote": "Here, we report that administration of spermidine, a natural polyamine whose intracellular concentration declines during human ageing, markedly extended the lifespan of yeast, flies and worms, and human immune cells.",
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "strain": {
+        "value": "not_reported",
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "sex": {
+        "value": "not_reported",
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "sample_size": {
+        "value": null,
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "intervention": {
+        "type": {
+          "value": "pharmacological",
+          "source_quote": "administration of spermidine, a natural polyamine",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "agent": {
+          "value": "spermidine",
+          "source_quote": "administration of spermidine, a natural polyamine whose intracellular concentration declines during human ageing",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "dose": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "age_at_start": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        }
+      },
+      "mechanism": {
+        "value": "induction of autophagy",
+        "source_quote": "The altered acetylation status of the chromatin led to significant upregulation of various autophagy-related transcripts, triggering autophagy in yeast, flies, worms and human cells.",
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "lifespan_effect": {
+        "direction": {
+          "value": "increase",
+          "source_quote": "Here, we report that administration of spermidine, a natural polyamine whose intracellular concentration declines during human ageing, markedly extended the lifespan of yeast, flies and worms, and human immune cells.",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "median_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "mean_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "max_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "p_value": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        }
+      },
+      "notes": "Abstract-only record. Yeast; organism is 'other' and species carries S. cerevisiae (schema v0.4.0). (i) Mice and human immune cells are deliberately excluded from this file. The abstract's only mouse statement concerns oxidative stress, not lifespan or survival; the human result is survival of immune cells in culture, which is a different quantity from organism lifespan despite the paper's wording. (ii) This paper is not in PMC (NCBI ID converter: 'Identifier not found in PMC'), so no full-text provenance is claimed and every quote here is extracted_from: abstract - which also means the absence of a mouse lifespan result is established from the abstract alone and not from the full text. (iii) All three organisms are covered by one sentence, so the three records share a single direction quote and are separated by organism per PLAN.md's (organism, intervention) rule, not by separate reported results. Every numeric lifespan field is null because the abstract states no percentage, no p-value and no n."
+    },
+    {
+      "experiment_id": "eisenberg2009-dmelanogaster-spermidine",
+      "organism": {
+        "value": "other",
+        "source_quote": "Here, we report that administration of spermidine, a natural polyamine whose intracellular concentration declines during human ageing, markedly extended the lifespan of yeast, flies and worms, and human immune cells.",
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "species": {
+        "value": "D. melanogaster",
+        "source_quote": "Here, we report that administration of spermidine, a natural polyamine whose intracellular concentration declines during human ageing, markedly extended the lifespan of yeast, flies and worms, and human immune cells.",
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "strain": {
+        "value": "not_reported",
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "sex": {
+        "value": "not_reported",
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "sample_size": {
+        "value": null,
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "intervention": {
+        "type": {
+          "value": "pharmacological",
+          "source_quote": "administration of spermidine, a natural polyamine",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "agent": {
+          "value": "spermidine",
+          "source_quote": "administration of spermidine, a natural polyamine whose intracellular concentration declines during human ageing",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "dose": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "age_at_start": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        }
+      },
+      "mechanism": {
+        "value": "induction of autophagy",
+        "source_quote": "The altered acetylation status of the chromatin led to significant upregulation of various autophagy-related transcripts, triggering autophagy in yeast, flies, worms and human cells.",
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "lifespan_effect": {
+        "direction": {
+          "value": "increase",
+          "source_quote": "Here, we report that administration of spermidine, a natural polyamine whose intracellular concentration declines during human ageing, markedly extended the lifespan of yeast, flies and worms, and human immune cells.",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "median_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "mean_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "max_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "p_value": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        }
+      },
+      "notes": "Abstract-only record. Flies; organism is 'other' and species carries D. melanogaster (schema v0.4.0). (i) Mice and human immune cells are deliberately excluded from this file. The abstract's only mouse statement concerns oxidative stress, not lifespan or survival; the human result is survival of immune cells in culture, which is a different quantity from organism lifespan despite the paper's wording. (ii) This paper is not in PMC (NCBI ID converter: 'Identifier not found in PMC'), so no full-text provenance is claimed and every quote here is extracted_from: abstract - which also means the absence of a mouse lifespan result is established from the abstract alone and not from the full text. (iii) All three organisms are covered by one sentence, so the three records share a single direction quote and are separated by organism per PLAN.md's (organism, intervention) rule, not by separate reported results. Every numeric lifespan field is null because the abstract states no percentage, no p-value and no n."
+    }
+  ]
+}
