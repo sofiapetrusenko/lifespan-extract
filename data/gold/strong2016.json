@@ -12,13 +12,13 @@
       "experiment_id": "strong2016-mmusculus-17-alpha-estradiol",
       "organism": {
         "value": "M. musculus",
-        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "source_quote": "UM‐HET3 mice were produced at each of the three test sites as previously described in detail",
         "confidence": "high",
         "extracted_from": "full_text"
       },
       "strain": {
         "value": "UM-HET3 (genetically heterogeneous)",
-        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "source_quote": "UM‐HET3 mice were produced at each of the three test sites as previously described in detail",
         "confidence": "high",
         "extracted_from": "full_text"
       },
@@ -30,14 +30,14 @@
       },
       "sample_size": {
         "value": 144,
-        "source_quote": "17aE2 144 925 19 0.000 (Table 1, males pooled across sites)",
+        "source_quote": "17aE2 144 925 19 0.000 1193 12 0.000",
         "confidence": "high",
         "extracted_from": "full_text"
       },
       "intervention": {
         "type": {
           "value": "pharmacological",
-          "source_quote": "17-a-estradiol (17aE2) is an optical isomer of 17-b-estradiol with reduced affinity for estrogen receptors.",
+          "source_quote": "17‐α‐estradiol (17aE2) is an optical isomer of 17‐β‐estradiol with reduced affinity for estrogen receptors.",
           "confidence": "high",
           "extracted_from": "full_text"
         },
@@ -104,13 +104,13 @@
       "experiment_id": "strong2016-mmusculus-ndga",
       "organism": {
         "value": "M. musculus",
-        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "source_quote": "UM‐HET3 mice were produced at each of the three test sites as previously described in detail",
         "confidence": "high",
         "extracted_from": "full_text"
       },
       "strain": {
         "value": "UM-HET3 (genetically heterogeneous)",
-        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "source_quote": "UM‐HET3 mice were produced at each of the three test sites as previously described in detail",
         "confidence": "high",
         "extracted_from": "full_text"
       },
@@ -122,7 +122,7 @@
       },
       "sample_size": {
         "value": 133,
-        "source_quote": "NDGA (2500 133 851 10 0.015 (Table 2, males pooled across sites)",
+        "source_quote": "NDGA (2500 133 851 10 0.015 1080 0 0.864",
         "confidence": "high",
         "extracted_from": "full_text"
       },
@@ -167,7 +167,7 @@
         },
         "median_change_pct": {
           "value": 10,
-          "source_quote": "NDGA (2500): n=133, median 851 days, +10%, P=0.015 (Table 2, males pooled)",
+          "source_quote": "NDGA (2500 133 851 10 0.015 1080 0 0.864",
           "confidence": "high",
           "extracted_from": "full_text"
         },
@@ -185,7 +185,7 @@
         },
         "p_value": {
           "value": "0.015",
-          "source_quote": "NDGA (2500): n=133, median 851 days, +10%, P=0.015 (Table 2, males pooled)",
+          "source_quote": "NDGA (2500 133 851 10 0.015 1080 0 0.864",
           "confidence": "high",
           "extracted_from": "full_text"
         }
@@ -196,13 +196,13 @@
       "experiment_id": "strong2016-mmusculus-protandim",
       "organism": {
         "value": "M. musculus",
-        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "source_quote": "UM‐HET3 mice were produced at each of the three test sites as previously described in detail",
         "confidence": "high",
         "extracted_from": "full_text"
       },
       "strain": {
         "value": "UM-HET3 (genetically heterogeneous)",
-        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "source_quote": "UM‐HET3 mice were produced at each of the three test sites as previously described in detail",
         "confidence": "high",
         "extracted_from": "full_text"
       },
@@ -214,20 +214,20 @@
       },
       "sample_size": {
         "value": 155,
-        "source_quote": "Prot 155 834 7 0.012 (Table 1, males pooled across sites)",
+        "source_quote": "Prot 155 834 7 0.012 1130 6 0.103",
         "confidence": "high",
         "extracted_from": "full_text"
       },
       "intervention": {
         "type": {
           "value": "pharmacological",
-          "source_quote": "Protandim (Prot) is a mixture of five botanical extracts, including bacosides, silymarin, withaferin A, epigallocatechin-3-gallate, and curcumin.",
+          "source_quote": "Protandim (Prot) is a mixture of five botanical extracts, including bacosides, silymarin, withaferin A, epigallocatechin‐3‐gallate, and curcumin.",
           "confidence": "medium",
           "extracted_from": "full_text"
         },
         "agent": {
           "value": "Protandim",
-          "source_quote": "Protandim (Prot) is a mixture of five botanical extracts, including bacosides, silymarin, withaferin A, epigallocatechin-3-gallate, and curcumin.",
+          "source_quote": "Protandim (Prot) is a mixture of five botanical extracts, including bacosides, silymarin, withaferin A, epigallocatechin‐3‐gallate, and curcumin.",
           "confidence": "high",
           "extracted_from": "full_text"
         },
@@ -288,13 +288,13 @@
       "experiment_id": "strong2016-mmusculus-acarbose-male",
       "organism": {
         "value": "M. musculus",
-        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "source_quote": "UM‐HET3 mice were produced at each of the three test sites as previously described in detail",
         "confidence": "high",
         "extracted_from": "full_text"
       },
       "strain": {
         "value": "UM-HET3 (genetically heterogeneous)",
-        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "source_quote": "UM‐HET3 mice were produced at each of the three test sites as previously described in detail",
         "confidence": "high",
         "extracted_from": "full_text"
       },
@@ -306,14 +306,14 @@
       },
       "sample_size": {
         "value": 147,
-        "source_quote": "ACA 147 875 6 0.000 (Table 2, C2012 males pooled across sites)",
+        "source_quote": "ACA 147 875 6 0.000 1183 12 0.0001",
         "confidence": "high",
         "extracted_from": "full_text"
       },
       "intervention": {
         "type": {
           "value": "pharmacological",
-          "source_quote": "Acarbose (ACA) is an inhibitor of intestinal a-glucosidase.",
+          "source_quote": "Acarbose (ACA) is an inhibitor of intestinal α‐glucosidase.",
           "confidence": "high",
           "extracted_from": "full_text"
         },
@@ -338,7 +338,7 @@
       },
       "mechanism": {
         "value": "alpha-glucosidase inhibition",
-        "source_quote": "Acarbose (ACA) is an inhibitor of intestinal a-glucosidase. It inhibits digestion of polysaccharides and attenuates the uptake of sugars from the GI tract.",
+        "source_quote": "Acarbose (ACA) is an inhibitor of intestinal α‐glucosidase. It inhibits digestion of polysaccharides and attenuates the uptake of sugars from the GI tract.",
         "confidence": "high",
         "extracted_from": "full_text"
       },
@@ -369,7 +369,7 @@
         },
         "p_value": {
           "value": "< 0.001",
-          "source_quote": "ACA 147 875 6 0.000 1183 12 0.0001 (Table 2, C2012 males; log-rank and Wang-Allison)",
+          "source_quote": "ACA 147 875 6 0.000 1183 12 0.0001",
           "confidence": "high",
           "extracted_from": "full_text"
         }
@@ -380,13 +380,13 @@
       "experiment_id": "strong2016-mmusculus-acarbose-female",
       "organism": {
         "value": "M. musculus",
-        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "source_quote": "UM‐HET3 mice were produced at each of the three test sites as previously described in detail",
         "confidence": "high",
         "extracted_from": "full_text"
       },
       "strain": {
         "value": "UM-HET3 (genetically heterogeneous)",
-        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "source_quote": "UM‐HET3 mice were produced at each of the three test sites as previously described in detail",
         "confidence": "high",
         "extracted_from": "full_text"
       },
@@ -398,14 +398,14 @@
       },
       "sample_size": {
         "value": 135,
-        "source_quote": "ACA 135 902 2 0.07 (Table 2, C2012 females pooled across sites)",
+        "source_quote": "ACA 135 902 2 0.07 1166 6 0.010",
         "confidence": "high",
         "extracted_from": "full_text"
       },
       "intervention": {
         "type": {
           "value": "pharmacological",
-          "source_quote": "Acarbose (ACA) is an inhibitor of intestinal a-glucosidase.",
+          "source_quote": "Acarbose (ACA) is an inhibitor of intestinal α‐glucosidase.",
           "confidence": "high",
           "extracted_from": "full_text"
         },
@@ -430,7 +430,7 @@
       },
       "mechanism": {
         "value": "alpha-glucosidase inhibition",
-        "source_quote": "Acarbose (ACA) is an inhibitor of intestinal a-glucosidase. It inhibits digestion of polysaccharides and attenuates the uptake of sugars from the GI tract.",
+        "source_quote": "Acarbose (ACA) is an inhibitor of intestinal α‐glucosidase. It inhibits digestion of polysaccharides and attenuates the uptake of sugars from the GI tract.",
         "confidence": "high",
         "extracted_from": "full_text"
       },
@@ -472,13 +472,13 @@
       "experiment_id": "strong2016-mmusculus-metformin-rapamycin",
       "organism": {
         "value": "M. musculus",
-        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "source_quote": "UM‐HET3 mice were produced at each of the three test sites as previously described in detail",
         "confidence": "high",
         "extracted_from": "full_text"
       },
       "strain": {
         "value": "UM-HET3 (genetically heterogeneous)",
-        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "source_quote": "UM‐HET3 mice were produced at each of the three test sites as previously described in detail",
         "confidence": "high",
         "extracted_from": "full_text"
       },
@@ -489,8 +489,8 @@
         "extracted_from": "full_text"
       },
       "sample_size": {
-        "value": 300,
-        "source_quote": "Met/Rapa 158 959 23 0.000 (males); Met/Rapa 142 1078 23 0.000 (females) (Table 1)",
+        "value": null,
+        "source_quote": null,
         "confidence": "medium",
         "extracted_from": "full_text"
       },
@@ -558,38 +558,38 @@
           "extracted_from": "full_text"
         }
       },
-      "notes": "Median +23% identical in both sexes, so recorded as one mixed record rather than a male/female split. Max lifespan significantly increased in both sexes but with different magnitudes (90th percentile +10% males, +17% females) - left null at record level, per-sex values here. sample_size 300 is the sum of the two sex arms (158 M + 142 F), medium confidence. The added benefit over rapamycin alone is a historical comparison (P=0.12 site-stratified, P=0.049 unstratified) - suggestive, not conclusive, per the authors."
+      "notes": "Median +23% identical in both sexes, so recorded as one mixed record rather than a male/female split. Max lifespan significantly increased in both sexes but with different magnitudes (90th percentile +10% males, +17% females) - left null at record level, per-sex values here. The added benefit over rapamycin alone is a historical comparison (P=0.12 site-stratified, P=0.049 unstratified) - suggestive, not conclusive, per the authors. sample_size null: Table 1 states per-arm n's only (158 males, 142 females; sum 300) and the paper states no combined total, so the value has no single-slice provenance - see NOTES.md 2026-08-11 on multi-source provenance."
     },
     {
       "experiment_id": "strong2016-mmusculus-metformin",
       "organism": {
         "value": "M. musculus",
-        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "source_quote": "UM‐HET3 mice were produced at each of the three test sites as previously described in detail",
         "confidence": "high",
         "extracted_from": "full_text"
       },
       "strain": {
         "value": "UM-HET3 (genetically heterogeneous)",
-        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "source_quote": "UM‐HET3 mice were produced at each of the three test sites as previously described in detail",
         "confidence": "high",
         "extracted_from": "full_text"
       },
       "sex": {
         "value": "mixed",
-        "source_quote": "Met led to a 7% increase in median lifespan of males when data were pooled across sites, but the effect was not statistically significant (P = 0.35). ... There was no effect of Met on survival of female mice",
+        "source_quote": "Met led to a 7% increase in median lifespan of males when data were pooled across sites, but the effect was not statistically significant (P = 0.35). Males treated with Met had site‐specific changes of 13%, −1%, and 10% at the three test sites, but none of these was statistically significant (Table S1, Supporting information; see Fig. S4, Supporting information for the site‐specific survival curves). There was no effect of Met on survival of female mice",
         "confidence": "high",
         "extracted_from": "full_text"
       },
       "sample_size": {
-        "value": 288,
-        "source_quote": "Met 148 835 7 0.348 (males); Met 140 872 0 0.791 (females) (Table 1)",
+        "value": null,
+        "source_quote": null,
         "confidence": "medium",
         "extracted_from": "full_text"
       },
       "intervention": {
         "type": {
           "value": "pharmacological",
-          "source_quote": "Metformin (Met) is an oral antidiabetic drug that has been FDA-approved for the treatment of type 2 diabetes",
+          "source_quote": "Metformin (Met) is an oral antidiabetic drug that has been FDA‐approved for the treatment of type 2 diabetes",
           "confidence": "high",
           "extracted_from": "full_text"
         },
@@ -650,19 +650,19 @@
           "extracted_from": "full_text"
         }
       },
-      "notes": "Designated no_effect hard case: a nominal +7% male median (P=0.35) must not be coerced into increase. Numeric changes deliberately null because no endpoint was significant; per-sex nominal values (males +7% P=0.35, females 0% P=0.79) kept here. Direct cross-paper disagreement with Martin-Montalvo 2013 (10.1038/ncomms3192): same agent, same 0.1% dose, positive there in C57BL/6 males (Gehan-Breslow) vs null here in UM-HET3 with log-rank and larger n - the authors discuss the statistical and design differences explicitly. Flagship contradiction-detection case."
+      "notes": "Designated no_effect hard case: a nominal +7% male median (P=0.35) must not be coerced into increase. Numeric changes deliberately null because no endpoint was significant; per-sex nominal values (males +7% P=0.35, females 0% P=0.79) kept here. Direct cross-paper disagreement with Martin-Montalvo 2013 (10.1038/ncomms3192): same agent, same 0.1% dose, positive there in C57BL/6 males (Gehan-Breslow) vs null here in UM-HET3 with log-rank and larger n - the authors discuss the statistical and design differences explicitly. Flagship contradiction-detection case. sample_size null: Table 1 states per-arm n's only (148 males, 140 females; sum 288) and the paper states no combined total, so the value has no single-slice provenance - see NOTES.md 2026-08-11 on multi-source provenance. The discussion's '148 Met mice and 294 controls' is the male arm only."
     },
     {
       "experiment_id": "strong2016-mmusculus-fish-oil",
       "organism": {
         "value": "M. musculus",
-        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "source_quote": "UM‐HET3 mice were produced at each of the three test sites as previously described in detail",
         "confidence": "high",
         "extracted_from": "full_text"
       },
       "strain": {
         "value": "UM-HET3 (genetically heterogeneous)",
-        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "source_quote": "UM‐HET3 mice were produced at each of the three test sites as previously described in detail",
         "confidence": "high",
         "extracted_from": "full_text"
       },
@@ -681,7 +681,7 @@
       "intervention": {
         "type": {
           "value": "dietary",
-          "source_quote": "Microencapsulated fish oil (containing DHA, minimum 132 mg/g of powder; and EPA plus DHA, minimum 168 mg kg-1 of powder) was purchased from Ocean Nutrition Canada",
+          "source_quote": "Microencapsulated fish oil (containing DHA, minimum 132 mg/g of powder; and EPA plus DHA, minimum 168 mg kg−1 of powder) was purchased from Ocean Nutrition Canada",
           "confidence": "medium",
           "extracted_from": "full_text"
         },
@@ -748,13 +748,13 @@
       "experiment_id": "strong2016-mmusculus-udca",
       "organism": {
         "value": "M. musculus",
-        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "source_quote": "UM‐HET3 mice were produced at each of the three test sites as previously described in detail",
         "confidence": "high",
         "extracted_from": "full_text"
       },
       "strain": {
         "value": "UM-HET3 (genetically heterogeneous)",
-        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "source_quote": "UM‐HET3 mice were produced at each of the three test sites as previously described in detail",
         "confidence": "high",
         "extracted_from": "full_text"
       },
@@ -765,8 +765,8 @@
         "extracted_from": "full_text"
       },
       "sample_size": {
-        "value": 282,
-        "source_quote": "UDCA 149 832 7 0.448 (males); UDCA 133 865 1 0.762 (females) (Table 1)",
+        "value": null,
+        "source_quote": null,
         "confidence": "medium",
         "extracted_from": "full_text"
       },
@@ -834,7 +834,7 @@
           "extracted_from": "full_text"
         }
       },
-      "notes": "Null on all survival endpoints in both sexes despite clear biological activity (significant body-weight reductions across the lifespan in both sexes) - a useful case where an extractor must not infer a lifespan effect from a physiological effect. First reported lifespan study of UDCA per the authors."
+      "notes": "Null on all survival endpoints in both sexes despite clear biological activity (significant body-weight reductions across the lifespan in both sexes) - a useful case where an extractor must not infer a lifespan effect from a physiological effect. First reported lifespan study of UDCA per the authors. sample_size null: Table 1 states per-arm n's only (149 males, 133 females; sum 282) and the paper states no combined total, so the value has no single-slice provenance - see NOTES.md 2026-08-11 on multi-source provenance."
     }
   ]
 }

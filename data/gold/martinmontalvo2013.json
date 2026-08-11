@@ -49,7 +49,7 @@
         },
         "dose": {
           "value": "0.1% (w/w) in diet",
-          "source_quote": "The first dose consisted of 0.1% metformin (w/w) supplemented in diet, which yielded a concentration of 0.45 +/- 0.09 mM in serum",
+          "source_quote": "The first dose consisted of 0.1% metformin (w/w) supplemented in diet, which yielded a concentration of 0.45 ± 0.09 mM in serum",
           "confidence": "high",
           "extracted_from": "full_text"
         },
@@ -93,7 +93,7 @@
         },
         "p_value": {
           "value": "0.02",
-          "source_quote": "chi2 = 5.46 and p = 0.02 in Gehan-Breslow survival test",
+          "source_quote": "χ2 = 5.46 and p= 0.02 in Gehan-Breslow survival test",
           "confidence": "high",
           "extracted_from": "full_text"
         }
@@ -141,7 +141,7 @@
         },
         "dose": {
           "value": "1% (w/w) in diet",
-          "source_quote": "The second dose (1% w/w) yielded a concentration of 5.03 +/- 0.87 mM in serum and 3.67 +/- 0.32 nmoles.mg-1 protein in the liver",
+          "source_quote": "The second dose (1% w/w) yielded a concentration of 5.03 ± 0.87 mM in serum and 3.67 ± 0.32 nmoles.mg−1 protein in the liver",
           "confidence": "high",
           "extracted_from": "full_text"
         },
@@ -185,7 +185,7 @@
         },
         "p_value": {
           "value": "< 0.001",
-          "source_quote": "chi2 = 51.70 and P < 0.001 in Gehan-Breslow survival test",
+          "source_quote": "χ2 = 51,70 and P< 0.001 in Gehan-Breslow survival test",
           "confidence": "high",
           "extracted_from": "full_text"
         }

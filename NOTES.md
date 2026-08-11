@@ -315,3 +315,63 @@ Worth stating for whoever reads the two files side by side: the paired records a
 This is not the `confidence` problem from the Colman entry, where the enum is right and the labels barely vary. Here the field is genuinely unbounded and exact match is the wrong metric — it would report extraction failures that are not failures, and the resulting number would be uninterpretable rather than merely harsh.
 
 **Not decided here.** It is an eval-design decision, due when Phase 3 defines per-field scoring, and it needs a rule per field rather than one global tolerance: normalized-substring containment might suit `age_at_start`, a synonym table is closer to what `strain` needs, and `mechanism` may want neither. Recording it now so the question is on the table before the metric is written, rather than discovered when the first eval reports a suspiciously low free-text score. The v0.1.0 note that closed enums are compared by exact match still stands and is unaffected.
+
+---
+
+## 2026-08-11 — schema limitation found while verifying strong2016 quotes: multi-source provenance
+
+### The gap
+
+**A value derived from two or more places in the source has no provenance model.** `source_quote` is a single string, and full-text verification (added this phase) enforces what was previously only a convention: it must be one *contiguous* slice of the source. A value that is read off one sentence, or one table row, is expressible. A value that is the sum of two table rows is not — there is no second quote to point at, and no way to say "these two places, together".
+
+Found by the full-text check rather than by reading. Three `strong2016` records — `metformin-rapamycin`, `metformin`, `udca` — carry a `sex: mixed` `sample_size` that is the sum of a male arm and a female arm:
+
+| record | value | male + female |
+|---|---|---|
+| `strong2016-mmusculus-metformin-rapamycin` | 300 | 158 + 142 |
+| `strong2016-mmusculus-metformin` | 288 | 148 + 140 |
+| `strong2016-mmusculus-udca` | 282 | 149 + 133 |
+
+Each quote had been written by concatenating the two table rows with a semicolon and appending a parenthetical naming the table. None of those strings is in the paper. The check reports them at 39–53% similarity to the nearest real slice, which is the correct answer: they are not mistranscriptions, they are constructions.
+
+**The paper states no combined total.** Searched for it before deciding: no "a total of N mice", no enrolment or assignment sentence carrying a cohort size, and the literals 288 and 282 appear nowhere in the full text. 300 appears once, in the rotarod methods (`accelerating to a maximum 40 rpm within 300 s`). The nearest prose n is `the ITP protocol used 148 Met mice and 294 controls, distributed among the three test sites` — a single-sex number in the discussion of the Martin-Montalvo disagreement, not a total. The sums are the labeller's arithmetic, correct arithmetic, and unattributable.
+
+**A contiguous slice covering both arms exists and is worse than nothing.** For each of the three, the span from the male row to the female row is 259–266 characters and sweeps in every intervening agent's row — Control, 17aE2, Prot, and for metformin also Met/Rapa and UDCA. It is verbatim, it is unique, and it would pass the checker while pointing at six other drugs. A quote that verifies without evidencing anything is a worse failure than a quote that fails, because nothing downstream will ever flag it.
+
+### Interim rule
+
+**`sample_size` carries the n as stated for the record's scope.** Where the source states a total for that scope, quote it. Where only per-arm n's are stated and the record is `sex: mixed`, the field is **null** and the arms go in `notes`.
+
+This is the treatment Colman 2009's 80/50 survival proportions received, and for the same reason: a value the paper does not state, reachable only by the labeller's arithmetic, does not belong in a field that Phase 3 will score. There the argument was that a fabricated median penalises a model correctly extracting `null`, converting the eval from a measure of accuracy into a measure of willingness to invent. A summed `sample_size` is the milder version of the same error — the arithmetic is unarguable where Colman's was not — but the eval consequence is identical, and the provenance is no better.
+
+Note what the rule does *not* do: it does not split the records. Splitting `metformin` per sex would fix the provenance and destroy the record — its `notes` designate it the flagship contradiction case against Martin-Montalvo 2013, and `metformin-rapamycin`'s notes state that one mixed record was chosen deliberately because median +23% was identical in both sexes. The splitting rule from the Mattison entry keys on whether the source *reports separate results*; for these three the survival result is stated jointly. Provenance of one field is not a reason to re-cut a record.
+
+Applied to the three records: `sample_size.value` and `sample_size.source_quote` both to null, per-arm n's and their sum into `notes`, everything else untouched. One side effect worth recording: the `udca` quote had also dropped a minus sign, reading `UDCA 133 865 1 0.762` where PMC's table reads `−1` for the female median change. **That never reached a value** — `median_change_pct` and every other numeric in the record are null and `direction` is `no_effect`, which the table supports for both sexes. It was damage confined to a string that was carrying five columns the field never used, and it disappears with the string.
+
+### v0.4.0 candidates now stand at three
+
+1. **Per-statistic direction** — Miller 2011: a qualitative claim about one statistic when another carries a number, with one `direction` for the whole `lifespan_effect`.
+2. **Survival-at-timepoint** — Colman 2009: a quantitative datum that is not median, mean, or max.
+3. **Multi-source provenance** — this entry: a value attributable to two or more disjoint places in the source, with one contiguous `source_quote`.
+
+The first two are the same gap seen from two sides — a qualitative claim with no number, and a number with no field. The third is a different axis: not which fields exist, but how many places one field is allowed to cite. It is the only one of the three that changes the claim wrapper itself rather than the `lifespan_effect` shape, and so the only one that touches every field in the schema. Whichever shape v0.4.0 takes, all three records are the migration test cases. Not designed here, and not fixed unilaterally mid-labeling.
+
+---
+
+## 2026-08-11 — `--refresh-quotes` could have written a mid-word slice into `data/gold/`
+
+**The defect.** `best_slice` finds the passage of PMC text closest to a quote by aligning the two with `SequenceMatcher` and then walking outward from the first and last shared runs by however many characters of the quote sit outside them. That walk counts characters and knows nothing about words. Given a quote whose *leading* characters were themselves mistranscribed — `chi2 = 5.46 …` against the paper's `χ2 = 5.46 …` — the alignment finds no shared run until several characters in, and the walk-back overshoots into the middle of the preceding word. The candidate it returned for Martin-Montalvo 2013 began:
+
+```
+nsion of mean lifespan (Fig. 1a), χ2 = 5.46 and p= 0.02 in Gehan-Breslow survival test
+```
+
+Verbatim, unique in the source, and gibberish — the front of `extension` had been severed.
+
+**Why it never fired.** `--refresh-quotes` only substitutes a candidate scoring at or above `REFRESH_SIMILARITY` (0.90). Both affected quotes are transliterations of a Greek letter plus a spacing difference in a short string, which scores 71% and 74%, so `plan_rewrite` refused them on the threshold and the mid-word candidate was never a write. Nothing in `data/gold/` was ever damaged. That is luck, not design: the threshold was chosen to separate mistranscriptions from reconstructions, and it caught this by coincidence of the same quotes being short. A longer sentence with the same leading-character problem would have cleared 0.90 and been written.
+
+**The failure mode being prevented** is the one that has no second chance. `--refresh-quotes --write` edits ground truth in place, and it writes a string that by construction verifies — the whole point is that the candidate is a real slice of the paper. A gibberish quote committed that way passes `check_gold.py` on that run and on every run afterwards. Nothing downstream distinguishes `of mean lifespan …` from `nsion of mean lifespan …`; both are contiguous and both are in the source. It would have to be caught by a human reading the diff, which is exactly the review this tool exists to make unnecessary.
+
+**The fix, in two independent places.** `best_slice` now snaps both boundaries to whitespace edges, scoring the contracted and expanded form of each and keeping the best-matching combination (ties to the shorter slice). Separately, `plan_rewrite` refuses any candidate that begins or ends adjacent to a word character, and `apply_rewrites` re-checks the same condition against the source and **raises** rather than skipping. The second and third checks are unreachable while the first is correct, and that is the point: this is the only code path in the repo that edits `data/gold/`, and one guard on it is one more than zero but fewer than it deserves.
+
+Recorded because the general lesson outlives this bug: a string-similarity search is a *search*, and its output is a candidate, not a quote. Anything that promotes a search result into ground truth needs a check that the result is well-formed on its own terms, not merely that it scored well.
