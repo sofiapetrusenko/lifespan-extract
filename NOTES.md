@@ -315,3 +315,43 @@ Worth stating for whoever reads the two files side by side: the paired records a
 This is not the `confidence` problem from the Colman entry, where the enum is right and the labels barely vary. Here the field is genuinely unbounded and exact match is the wrong metric — it would report extraction failures that are not failures, and the resulting number would be uninterpretable rather than merely harsh.
 
 **Not decided here.** It is an eval-design decision, due when Phase 3 defines per-field scoring, and it needs a rule per field rather than one global tolerance: normalized-substring containment might suit `age_at_start`, a synonym table is closer to what `strain` needs, and `mechanism` may want neither. Recording it now so the question is on the table before the metric is written, rather than discovered when the first eval reports a suspiciously low free-text score. The v0.1.0 note that closed enums are compared by exact match still stands and is unaffected.
+
+---
+
+## 2026-08-11 — schema limitation found while verifying strong2016 quotes: multi-source provenance
+
+### The gap
+
+**A value derived from two or more places in the source has no provenance model.** `source_quote` is a single string, and full-text verification (added this phase) enforces what was previously only a convention: it must be one *contiguous* slice of the source. A value that is read off one sentence, or one table row, is expressible. A value that is the sum of two table rows is not — there is no second quote to point at, and no way to say "these two places, together".
+
+Found by the full-text check rather than by reading. Three `strong2016` records — `metformin-rapamycin`, `metformin`, `udca` — carry a `sex: mixed` `sample_size` that is the sum of a male arm and a female arm:
+
+| record | value | male + female |
+|---|---|---|
+| `strong2016-mmusculus-metformin-rapamycin` | 300 | 158 + 142 |
+| `strong2016-mmusculus-metformin` | 288 | 148 + 140 |
+| `strong2016-mmusculus-udca` | 282 | 149 + 133 |
+
+Each quote had been written by concatenating the two table rows with a semicolon and appending a parenthetical naming the table. None of those strings is in the paper. The check reports them at 39–53% similarity to the nearest real slice, which is the correct answer: they are not mistranscriptions, they are constructions.
+
+**The paper states no combined total.** Searched for it before deciding: no "a total of N mice", no enrolment or assignment sentence carrying a cohort size, and the literals 288 and 282 appear nowhere in the full text. 300 appears once, in the rotarod methods (`accelerating to a maximum 40 rpm within 300 s`). The nearest prose n is `the ITP protocol used 148 Met mice and 294 controls, distributed among the three test sites` — a single-sex number in the discussion of the Martin-Montalvo disagreement, not a total. The sums are the labeller's arithmetic, correct arithmetic, and unattributable.
+
+**A contiguous slice covering both arms exists and is worse than nothing.** For each of the three, the span from the male row to the female row is 259–266 characters and sweeps in every intervening agent's row — Control, 17aE2, Prot, and for metformin also Met/Rapa and UDCA. It is verbatim, it is unique, and it would pass the checker while pointing at six other drugs. A quote that verifies without evidencing anything is a worse failure than a quote that fails, because nothing downstream will ever flag it.
+
+### Interim rule
+
+**`sample_size` carries the n as stated for the record's scope.** Where the source states a total for that scope, quote it. Where only per-arm n's are stated and the record is `sex: mixed`, the field is **null** and the arms go in `notes`.
+
+This is the treatment Colman 2009's 80/50 survival proportions received, and for the same reason: a value the paper does not state, reachable only by the labeller's arithmetic, does not belong in a field that Phase 3 will score. There the argument was that a fabricated median penalises a model correctly extracting `null`, converting the eval from a measure of accuracy into a measure of willingness to invent. A summed `sample_size` is the milder version of the same error — the arithmetic is unarguable where Colman's was not — but the eval consequence is identical, and the provenance is no better.
+
+Note what the rule does *not* do: it does not split the records. Splitting `metformin` per sex would fix the provenance and destroy the record — its `notes` designate it the flagship contradiction case against Martin-Montalvo 2013, and `metformin-rapamycin`'s notes state that one mixed record was chosen deliberately because median +23% was identical in both sexes. The splitting rule from the Mattison entry keys on whether the source *reports separate results*; for these three the survival result is stated jointly. Provenance of one field is not a reason to re-cut a record.
+
+Applied to the three records: `sample_size.value` and `sample_size.source_quote` both to null, per-arm n's and their sum into `notes`, everything else untouched. One side effect worth recording: the `udca` quote had also dropped a minus sign, reading `UDCA 133 865 1 0.762` where PMC's table reads `−1` for the female median change. **That never reached a value** — `median_change_pct` and every other numeric in the record are null and `direction` is `no_effect`, which the table supports for both sexes. It was damage confined to a string that was carrying five columns the field never used, and it disappears with the string.
+
+### v0.4.0 candidates now stand at three
+
+1. **Per-statistic direction** — Miller 2011: a qualitative claim about one statistic when another carries a number, with one `direction` for the whole `lifespan_effect`.
+2. **Survival-at-timepoint** — Colman 2009: a quantitative datum that is not median, mean, or max.
+3. **Multi-source provenance** — this entry: a value attributable to two or more disjoint places in the source, with one contiguous `source_quote`.
+
+The first two are the same gap seen from two sides — a qualitative claim with no number, and a number with no field. The third is a different axis: not which fields exist, but how many places one field is allowed to cite. It is the only one of the three that changes the claim wrapper itself rather than the `lifespan_effect` shape, and so the only one that touches every field in the schema. Whichever shape v0.4.0 takes, all three records are the migration test cases. Not designed here, and not fixed unilaterally mid-labeling.

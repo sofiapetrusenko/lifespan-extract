@@ -489,8 +489,8 @@
         "extracted_from": "full_text"
       },
       "sample_size": {
-        "value": 300,
-        "source_quote": "Met/Rapa 158 959 23 0.000 (males); Met/Rapa 142 1078 23 0.000 (females) (Table 1)",
+        "value": null,
+        "source_quote": null,
         "confidence": "medium",
         "extracted_from": "full_text"
       },
@@ -558,7 +558,7 @@
           "extracted_from": "full_text"
         }
       },
-      "notes": "Median +23% identical in both sexes, so recorded as one mixed record rather than a male/female split. Max lifespan significantly increased in both sexes but with different magnitudes (90th percentile +10% males, +17% females) - left null at record level, per-sex values here. sample_size 300 is the sum of the two sex arms (158 M + 142 F), medium confidence. The added benefit over rapamycin alone is a historical comparison (P=0.12 site-stratified, P=0.049 unstratified) - suggestive, not conclusive, per the authors."
+      "notes": "Median +23% identical in both sexes, so recorded as one mixed record rather than a male/female split. Max lifespan significantly increased in both sexes but with different magnitudes (90th percentile +10% males, +17% females) - left null at record level, per-sex values here. The added benefit over rapamycin alone is a historical comparison (P=0.12 site-stratified, P=0.049 unstratified) - suggestive, not conclusive, per the authors. sample_size null: Table 1 states per-arm n's only (158 males, 142 females; sum 300) and the paper states no combined total, so the value has no single-slice provenance - see NOTES.md 2026-08-11 on multi-source provenance."
     },
     {
       "experiment_id": "strong2016-mmusculus-metformin",
@@ -576,13 +576,13 @@
       },
       "sex": {
         "value": "mixed",
-        "source_quote": "Met led to a 7% increase in median lifespan of males when data were pooled across sites, but the effect was not statistically significant (P = 0.35). ... There was no effect of Met on survival of female mice",
+        "source_quote": "Met led to a 7% increase in median lifespan of males when data were pooled across sites, but the effect was not statistically significant (P = 0.35). Males treated with Met had site‐specific changes of 13%, −1%, and 10% at the three test sites, but none of these was statistically significant (Table S1, Supporting information; see Fig. S4, Supporting information for the site‐specific survival curves). There was no effect of Met on survival of female mice",
         "confidence": "high",
         "extracted_from": "full_text"
       },
       "sample_size": {
-        "value": 288,
-        "source_quote": "Met 148 835 7 0.348 (males); Met 140 872 0 0.791 (females) (Table 1)",
+        "value": null,
+        "source_quote": null,
         "confidence": "medium",
         "extracted_from": "full_text"
       },
@@ -650,7 +650,7 @@
           "extracted_from": "full_text"
         }
       },
-      "notes": "Designated no_effect hard case: a nominal +7% male median (P=0.35) must not be coerced into increase. Numeric changes deliberately null because no endpoint was significant; per-sex nominal values (males +7% P=0.35, females 0% P=0.79) kept here. Direct cross-paper disagreement with Martin-Montalvo 2013 (10.1038/ncomms3192): same agent, same 0.1% dose, positive there in C57BL/6 males (Gehan-Breslow) vs null here in UM-HET3 with log-rank and larger n - the authors discuss the statistical and design differences explicitly. Flagship contradiction-detection case."
+      "notes": "Designated no_effect hard case: a nominal +7% male median (P=0.35) must not be coerced into increase. Numeric changes deliberately null because no endpoint was significant; per-sex nominal values (males +7% P=0.35, females 0% P=0.79) kept here. Direct cross-paper disagreement with Martin-Montalvo 2013 (10.1038/ncomms3192): same agent, same 0.1% dose, positive there in C57BL/6 males (Gehan-Breslow) vs null here in UM-HET3 with log-rank and larger n - the authors discuss the statistical and design differences explicitly. Flagship contradiction-detection case. sample_size null: Table 1 states per-arm n's only (148 males, 140 females; sum 288) and the paper states no combined total, so the value has no single-slice provenance - see NOTES.md 2026-08-11 on multi-source provenance. The discussion's '148 Met mice and 294 controls' is the male arm only."
     },
     {
       "experiment_id": "strong2016-mmusculus-fish-oil",
@@ -765,8 +765,8 @@
         "extracted_from": "full_text"
       },
       "sample_size": {
-        "value": 282,
-        "source_quote": "UDCA 149 832 7 0.448 (males); UDCA 133 865 1 0.762 (females) (Table 1)",
+        "value": null,
+        "source_quote": null,
         "confidence": "medium",
         "extracted_from": "full_text"
       },
@@ -834,7 +834,7 @@
           "extracted_from": "full_text"
         }
       },
-      "notes": "Null on all survival endpoints in both sexes despite clear biological activity (significant body-weight reductions across the lifespan in both sexes) - a useful case where an extractor must not infer a lifespan effect from a physiological effect. First reported lifespan study of UDCA per the authors."
+      "notes": "Null on all survival endpoints in both sexes despite clear biological activity (significant body-weight reductions across the lifespan in both sexes) - a useful case where an extractor must not infer a lifespan effect from a physiological effect. First reported lifespan study of UDCA per the authors. sample_size null: Table 1 states per-arm n's only (149 males, 133 females; sum 282) and the paper states no combined total, so the value has no single-slice provenance - see NOTES.md 2026-08-11 on multi-source provenance."
     }
   ]
 }
