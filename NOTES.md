@@ -201,3 +201,23 @@ Tests use in-memory SQLite through the same `make_engine`, which applies `Static
 ### Tooling drift found while doing this
 
 - **`ruff check .` no longer runs with the small default rule set.** The v0.1.0 tooling note above records that ruff runs clean with no config file. The venv now has ruff 0.16.2, whose default is ~415 rules (verified with `ruff check --isolated --show-settings`: the isolated and configured rule counts are identical, so this is the installed ruff's default, not a stray config file). CI installs `ruff` unpinned and will see the same. Nothing here needs a config file — `ruff check ingest tests` is clean under the expanded set — but the earlier note is now stale, and the wider rule set is worth pinning if a future ruff release moves the goalposts again mid-phase.
+
+---
+
+## 2026-08-11 — schema v0.3.0: rhesus macaque in scope
+
+**Change:** `organism` gains `M. mulatta`, so the enum is now `C. elegans|M. musculus|M. mulatta|other`. Scope decision made by the human, not derived from the data. Member name follows the existing abbreviated-binomial convention; placed before `other`, which stays last as the catch-all. Additive and backward compatible — a v0.1.0/v0.2.0/v0.2.1 record still validates, and all five files in `data/gold/` pass unchanged against v0.3.0.
+
+**Supersedes v0.1.0 decision 6**, which described the macaque papers as deliberately out of scope and labelled `other`. That rationale for `other` is gone; `other` survives on its own merits, as the truthful bucket for any organism outside the three the MVP filters cover.
+
+### Why this matters for Phase 2 — the classifier must accept macaque papers
+
+The CR-in-macaques pair (Colman 2009 / Mattison 2012) is the strongest conflicting-evidence case the gold set is designed around: two long-running caloric-restriction studies in *Macaca mulatta* reaching opposite conclusions on survival. Nothing else in the PLAN.md Phase 0 design puts two papers, same intervention, same organism, on opposite sides of `lifespan_effect.direction` — the rapamycin pair (Harrison 2009 / Miller 2011) is a *consistency* pair, which tests agreement rather than disagreement. It is also the motivating case for the Phase 5 stretch goal, contradiction detection, which groups by (intervention, organism) and flags opposite directions.
+
+**Consequence for `extract/classify.py`:** the cheap-model gate must return true for macaque papers. A classifier prompt that names only worms and mice — the wording the v0.2.1 scope line invited — would drop both papers before extraction ever sees them, and the failure would be silent: the eval would simply have no record to score, not a wrong one. The conflicting-evidence case would then be absent from the metrics that exist to measure exactly this kind of hard case. Phase 2's classifier prompt and its labelled positive/negative set both need a macaque positive.
+
+### State on disk, so this is not read as more than it is
+
+Neither Colman 2009 nor Mattison 2012 is in `data/gold/` yet. The gold set currently holds five files — `harrison2009`, `kenyon1993`, `lakowski1998`, `martinmontalvo2013`, `strong2016` — against the ten PLAN.md Phase 0 calls for; the macaque pair is part of that design, not of the labelled corpus. So no record uses `M. mulatta` today, and nothing was relabelled: the enum was widened ahead of the papers that need it, which is the right order given `data/gold/` is human-only. Whoever labels the pair writes `M. mulatta` directly and never passes through `other`.
+
+`schema_version` `examples` in the schema still reads `["0.2.1"]`, deliberately: it illustrates the record-level pattern, and `0.2.1` is what every gold file on disk actually declares. Per the "two versions, deliberately" note under v0.2.1, the root `x-schema-version` is the single source of truth for the schema's own version, and that is what was bumped.

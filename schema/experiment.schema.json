@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/sofiapetrusenko/lifespan-extract/blob/main/schema/experiment.schema.json",
   "title": "lifespan-extract paper record",
-  "x-schema-version": "0.2.1",
+  "x-schema-version": "0.3.0",
   "description": "One file = one paper. A paper contributes one experiment entry per (organism, intervention) pair, so multi-organism papers yield multiple entries in experiments[]. Claim fields carry provenance; paper metadata is flat because it comes from the ingest API rather than the prose.",
   "type": "object",
   "required": ["schema_version", "paper", "experiments"],
@@ -90,8 +90,8 @@
       "unevaluatedProperties": false,
       "properties": {
         "value": {
-          "enum": ["C. elegans", "M. musculus", "other"],
-          "description": "MVP filters cover the two named organisms. `other` exists so gold-set papers outside scope (e.g. the Colman 2009 / Mattison 2012 macaque pair) can be labeled truthfully rather than forced into a wrong bucket."
+          "enum": ["C. elegans", "M. musculus", "M. mulatta", "other"],
+          "description": "MVP filters cover the three named organisms; `M. mulatta` (rhesus macaque) was added in v0.3.0, bringing the Colman 2009 / Mattison 2012 CR pair into scope. `other` exists so gold-set papers outside scope can be labeled truthfully rather than forced into a wrong bucket."
         }
       }
     },

@@ -4,7 +4,7 @@ Structured extraction of lifespan-intervention experiments from the longevity li
 
 **Problem.** Thousands of intervention experiments are locked in PDF prose. Manually curated databases (DrugAge, GenAge) lag the literature by years. This tool ingests papers, extracts structured experiment records with an LLM, measures extraction accuracy against a hand-labeled gold set, and serves the results through an API and a UI a scientist would actually enjoy using.
 
-**Scope (MVP).** Organisms: *C. elegans* and *M. musculus* only. Sources: PubMed abstracts + PMC open-access full text + bioRxiv. No fine-tuning; prompt + schema + evals.
+**Scope (MVP).** Organisms: *C. elegans*, *M. musculus*, and *M. mulatta* (rhesus macaque) only. Sources: PubMed abstracts + PMC open-access full text + bioRxiv. No fine-tuning; prompt + schema + evals.
 
 ---
 
