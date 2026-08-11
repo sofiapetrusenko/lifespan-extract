@@ -26,6 +26,12 @@ jobs:
       - name: Validate gold set against schema
         run: python scripts/validate_gold.py
 
+      # Structure, vocabulary and uniqueness only. The --resolve flag hits
+      # PubMed and is deliberately not run here: a network call on every push
+      # makes CI fail for reasons that have nothing to do with the change.
+      - name: Validate classifier negative set
+        run: python scripts/validate_classifier_set.py
+
       - name: Tests
         run: |
           # exit code 5 = no tests collected; acceptable until Phase 2

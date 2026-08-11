@@ -1,0 +1,164 @@
+{
+  "set_version": "0.1.0",
+  "label": "negative",
+  "description": "Hard negatives for the Phase 3 classifier eval. Every entry looks like a lifespan-intervention study to a naive keyword classifier and is not one. The 10 records in data/gold/ are the positives; this file is the other half.",
+  "categories": [
+    {
+      "name": "aging-no-lifespan",
+      "description": "Aging-related, but no lifespan is measured - biomarkers, biological-age clocks, healthspan endpoints only."
+    },
+    {
+      "name": "lifespan-no-intervention",
+      "description": "Lifespan or survival is measured, but nothing is administered - observational, GWAS/QTL, natural variation."
+    },
+    {
+      "name": "lifespan-adjacent-outcome",
+      "description": "An intervention on something lifespan-shaped but not organismal lifespan - cellular senescence, replicative lifespan of cells, organoids."
+    },
+    {
+      "name": "review-or-meta-analysis",
+      "description": "Reviews and meta-analyses of lifespan interventions: the right words in the right order, no experiment of their own."
+    },
+    {
+      "name": "wrong-organism",
+      "description": "Heavy lifespan vocabulary in an organism the project does not cover, or where 'lifespan' denotes something else entirely."
+    }
+  ],
+  "entries": [
+    {
+      "pmid": "38381284",
+      "doi": "10.1007/s11357-024-01086-3",
+      "title": "Epigenetic clock in the aorta and age-related endothelial dysfunction in mice.",
+      "source": "pubmed",
+      "category": "aging-no-lifespan",
+      "reason": "Builds and validates a DNA-methylation age estimator for mouse aorta and blood and correlates it with endothelial dysfunction; no animal's lifespan is measured and nothing is administered.",
+      "reviewed": true
+    },
+    {
+      "pmid": "39424993",
+      "doi": "10.1038/s43587-024-00728-7",
+      "title": "A hematology-based clock derived from the Study of Longitudinal Aging in Mice to estimate biological age.",
+      "source": "pubmed",
+      "category": "aging-no-lifespan",
+      "reason": "Trains a hematology-based biological-age clock on 2,562 mice and relates the aging gap to mortality risk and frailty; predicts age, does not measure lifespan, and applies no intervention.",
+      "reviewed": true
+    },
+    {
+      "pmid": "38378685",
+      "doi": "10.1038/s41467-024-45260-9",
+      "title": "Fasting-mimicking diet causes hepatic and blood markers changes indicating reduced biological age and disease risk.",
+      "source": "pubmed",
+      "category": "aging-no-lifespan",
+      "reason": "A real dietary intervention (fasting-mimicking diet) in a human trial whose outcomes are biological-age and cardiometabolic markers, not survival; its first sentence cites lifespan extension in mice, which is the trap.",
+      "reviewed": true
+    },
+    {
+      "pmid": "23658604",
+      "doi": "10.1371/journal.pone.0058212",
+      "title": "Natural variation for lifespan and stress response in the nematode Caenorhabditis remanei.",
+      "source": "pubmed",
+      "category": "lifespan-no-intervention",
+      "reason": "Measures heritability of longevity and stress resistance across natural C. remanei isolates; lifespan is an outcome of standing genetic variation, and no treatment is applied to any group.",
+      "reviewed": true
+    },
+    {
+      "pmid": "20305363",
+      "doi": "10.1007/bf03324809",
+      "title": "Quantitative trait loci (QTL) analysis of longevity in C57BL/6J by DBA/2J (BXD) recombinant inbred mice.",
+      "source": "pubmed",
+      "category": "lifespan-no-intervention",
+      "reason": "Maps longevity QTLs across 23 BXD recombinant inbred mouse strains kept to natural death; lifespan is measured precisely and the independent variable is genotype, not an intervention.",
+      "reviewed": true
+    },
+    {
+      "pmid": "42503958",
+      "doi": "10.3760/cma.j.cn112338-20251019-00737",
+      "title": "[Association of matrix metalloproteinase 12 with all-cause mortality in Hainan centenarians].",
+      "source": "pubmed",
+      "category": "lifespan-no-intervention",
+      "reason": "Observational centenarian cohort associating MMP-12 level with all-cause mortality; a survival analysis with hazard ratios and no assigned treatment.",
+      "reviewed": true
+    },
+    {
+      "pmid": "40371663",
+      "doi": "10.1111/acel.70105",
+      "title": "hTERT Increases TRF2 to Induce Telomere Compaction and Extend Cell Replicative Lifespan.",
+      "source": "pubmed",
+      "category": "lifespan-adjacent-outcome",
+      "reason": "hTERT variants extend the replicative lifespan of cultured human fibroblasts via telomere compaction; 'lifespan' here is population doublings of a cell line, not the life of an organism.",
+      "reviewed": true
+    },
+    {
+      "pmid": "26765334",
+      "doi": "10.1371/journal.pgen.1005787",
+      "title": "Chronic DNA Replication Stress Reduces Replicative Lifespan of Cells by TRP53-Dependent, microRNA-Assisted MCM2-7 Downregulation.",
+      "source": "pubmed",
+      "category": "lifespan-adjacent-outcome",
+      "reason": "Chronic replication stress shortens the replicative lifespan of mouse embryonic fibroblasts through MCM2-7 repression; the outcome is cellular senescence in culture despite the mouse material.",
+      "reviewed": true
+    },
+    {
+      "pmid": "33029282",
+      "doi": "10.1155/2020/6423783",
+      "title": "Effect of Antioxidants on the Fibroblast Replicative Lifespan In Vitro.",
+      "source": "pubmed",
+      "category": "lifespan-adjacent-outcome",
+      "reason": "Surveys whether antioxidants extend fibroblast replicative lifespan in vitro; both disqualifying at once - the outcome is a cell-culture endpoint and the paper is a review rather than an experiment.",
+      "reviewed": true
+    },
+    {
+      "pmid": "41935583",
+      "doi": "10.1016/j.arr.2026.103123",
+      "title": "Sex differences in response to longevity interventions.",
+      "source": "pubmed",
+      "category": "review-or-meta-analysis",
+      "reason": "Discusses how males and females respond differently to interventions known to extend lifespan; the title is almost indistinguishable from a positive and the paper reports no experiment of its own.",
+      "reviewed": true
+    },
+    {
+      "pmid": "40532901",
+      "doi": "10.1111/acel.70131",
+      "title": "Rapamycin, Not Metformin, Mirrors Dietary Restriction-Driven Lifespan Extension in Vertebrates: A Meta-Analysis.",
+      "source": "pubmed",
+      "category": "review-or-meta-analysis",
+      "reason": "Meta-analysis pooling 911 effect sizes from 167 papers on rapamycin, metformin and dietary restriction; carries the gold set's exact vocabulary and every number in it is someone else's.",
+      "reviewed": true
+    },
+    {
+      "pmid": "41898496",
+      "doi": "10.3390/ijms27062633",
+      "title": "Yeast Chronological Lifespan Model as a Tool for Screening Aging Interventions.",
+      "source": "pubmed",
+      "category": "review-or-meta-analysis",
+      "reason": "Review of the yeast chronological lifespan assay as a screening platform for anti-aging compounds; describes how lifespan experiments are run without running one.",
+      "reviewed": true
+    },
+    {
+      "pmid": "36721872",
+      "doi": "10.1111/pce.14554",
+      "title": "FAR-RED ELONGATED HYPOCOTYL3 increases leaf longevity by delaying senescence in arabidopsis.",
+      "source": "pubmed",
+      "category": "wrong-organism",
+      "reason": "A genetic intervention (FHY3) that extends 'longevity' in Arabidopsis - but the entity whose longevity is extended is a leaf, and the mechanism is delayed chlorophyll degradation.",
+      "reviewed": true
+    },
+    {
+      "pmid": "39262305",
+      "doi": "10.1111/ppl.14519",
+      "title": "Changes in leaf lifespan, nitrogen resorption, and mean residence time of leaf nitrogen along a soil fertility gradient in an evergreen oak tree.",
+      "source": "pubmed",
+      "category": "wrong-organism",
+      "reason": "Measures leaf lifespan and nitrogen residence time along a soil fertility gradient in an evergreen oak; 'lifespan' is a leaf-level plant trait in an ecology study.",
+      "reviewed": true
+    },
+    {
+      "pmid": "42366481",
+      "doi": "10.1111/pce.70704",
+      "title": "Leaf Tissue-Specific Phosphorus Allocation Is Linked to Leaf Lifespan in Chickpea Accessions.",
+      "source": "pubmed",
+      "category": "wrong-organism",
+      "reason": "Links leaf tissue phosphorus allocation to leaf lifespan across chickpea accessions; heavy lifespan vocabulary attached to a crop-breeding phenotype.",
+      "reviewed": true
+    }
+  ]
+}

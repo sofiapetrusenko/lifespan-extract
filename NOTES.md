@@ -512,3 +512,43 @@ So `lifespan_effect.median_change_pct` on `calubag2025` is a record where plain 
 Not a gap, but the splitting rule's cleanest case so far. Val-R extends male lifespan and does not extend female lifespan, both stated in one sentence, so the Mattison rule — split when the source reports separate results — gives two records with `direction: increase` and `direction: no_effect` from a single quote. The female record is a *reported null*, not missing data, which is exactly the distinction `no_effect` exists to carry.
 
 Two of the abstract's claims are deliberately absent from the file: the isoleucine result is the authors' own prior paper ("we recently found..."), and the statement that BCAA restriction extends healthspan and lifespan is background literature. Neither is a finding of this study. They are recorded in `notes` as excluded, and a check in the labelling script asserted that neither sentence appears as a `value` or a `source_quote` anywhere in the record — the failure mode being a background sentence quoted as though the paper had demonstrated it.
+
+---
+
+## 2026-08-11 — the classifier negative set, and why the negatives have to be hard
+
+PLAN.md Phase 3 scores the classifier on precision and recall over a labeled positive/negative set. The 10 gold papers are the positives. `data/classifier_set/negatives.json` is the other half: 15 candidates, three in each of five categories.
+
+### Why hard negatives
+
+**A classifier scored only on obvious negatives reports a precision that means nothing.** Draw a negative set at random from PubMed and it is mostly cardiology, oncology and epidemiology; a classifier keying on nothing but the token "lifespan" separates that set almost perfectly, and the resulting 0.98 is a fact about the sampling, not about the classifier. Precision is only informative when the negatives are drawn from the region where the decision is actually difficult — papers the classifier is at genuine risk of calling positive.
+
+So every entry shares surface features with the positives: the vocabulary, usually the organism, and in several cases a real intervention. Each fails on exactly one thing, and the entry names which. The hardest are the ones where a human has to read twice — a fasting-mimicking diet trial that opens by citing lifespan extension in mice and then measures biological-age markers, or a meta-analysis whose title contains "rapamycin", "metformin", "dietary restriction" and "lifespan extension" and whose every number belongs to someone else.
+
+### What each category stresses
+
+The five are not a taxonomy of papers, they are a set of **boundaries the classifier has to hold**, one per category:
+
+| category | the boundary it probes |
+|---|---|
+| `aging-no-lifespan` | Does it require a *lifespan outcome*, or is aging-as-a-topic enough? |
+| `lifespan-no-intervention` | Does it require an *intervention*, or is a measured lifespan enough? |
+| `lifespan-adjacent-outcome` | Does it distinguish the lifespan of an *organism* from the lifespan of a cell? |
+| `review-or-meta-analysis` | Does it distinguish *doing* an experiment from *describing* one? |
+| `wrong-organism` | Does it read "lifespan" *in context*? |
+
+Three entries per category rather than a flat 15 on purpose. A per-category breakdown is what turns a bad score into a diagnosis: 12/15 tells you the classifier is imperfect, while 3/3 on four categories and 0/3 on `review-or-meta-analysis` tells you it cannot tell a review from an experiment, which is one prompt change away from fixed.
+
+Two shapes were deliberately **not** included. A *Drosophila* lifespan-intervention study is not a negative — the schema's `organism: other` exists so out-of-scope organisms can be labelled truthfully, and Eisenberg 2009 is a gold positive covering flies, yeast and worms. And a C. elegans recombinant-inbred mapping study that then validates its hits by RNAi is genuinely ambiguous: mapping is not an intervention, but the validation is. Both were read and dropped rather than filed under a category they do not fit.
+
+### The human reviews every entry before it counts
+
+Each entry carries `"reviewed": false`. The validator prints the unreviewed count on every run and says those entries do not count toward the eval. The candidates were assembled by searching PubMed through the existing ingest client and reading every abstract — no entry was written from a title — but "an agent read it and thought so" is not the standard for the set that decides whether the pipeline can be trusted. The same rule as `data/gold/`, arrived at for the same reason, and the flag makes the distinction machine-visible instead of relying on someone remembering.
+
+### Structural notes
+
+`scripts/validate_classifier_set.py` checks structure, closed vocabulary and uniqueness, and runs in CI beside `validate_gold.py`. It is **not** JSON Schema: a gold record is a deep versioned tree a model will one day have to produce, while this is a flat list under a closed vocabulary, and a second schema file would need its own version for no gain.
+
+`--resolve` checks every PMID against PubMed and confirms the stored title still matches. It is opt-in and stays out of CI: an identifier valid when added does not stop being valid, and CI that fails because NCBI is having an outage teaches people to ignore CI — the elink outage earlier today being the local precedent.
+
+One known limit, pinned by a test so it is a decision rather than a surprise: duplicate detection keys on whichever identifier an entry uses, so the same paper listed once by PMID and once by DOI would pass. Nothing in the file records the mapping between the two. It matters if preprint negatives are ever added alongside their published versions — the same gap as the ingest dedup limitation, in a smaller place.
