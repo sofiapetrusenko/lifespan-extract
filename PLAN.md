@@ -40,6 +40,8 @@ data/drafts/   in-progress labels, gitignored; promoted into data/gold/ by hand
 
 **Gold set covers hard cases by design:** two consistency pairs (Harrison 2009 / Miller 2011 rapamycin; Colman 2009 / Mattison 2012 CR-in-macaques with opposite conclusions), one multi-organism paper (Eisenberg 2009 spermidine), one sex-specific effect (Strong 2016 17-α-estradiol), one small-effect paper (Martin-Montalvo 2013 metformin), one recent preprint.
 
+**Schema is at v0.4.0.** `experiments[].species` (v0.4.0) carries the actual species as free text when `organism` — a closed enum sized for the MVP filters — can only say `other`. Without it a multi-organism paper's yeast and fly records differ in no validated field. `organism` was deliberately *not* extended: the enum is the filter vocabulary, and widening it would put organisms out of MVP scope into the API's aggregates.
+
 **Done when:** 10 valid JSON files pass schema validation; schema has survived contact with real papers.
 
 ## Phase 1 — Ingestion (week 2, first half)

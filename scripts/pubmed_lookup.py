@@ -318,9 +318,16 @@ def fetch_full_text(
     someone passes `--refresh`, which is the right trade for a check that runs
     on every commit.
 
-    Raises `ValueError` for a malformed PMID and `ingest.errors.TransportError`
-    when a request fails and retrying does not help. Never raises for a paper
-    that simply is not in PMC.
+    **Only a positively established negative is cached.** The two calls below
+    raise rather than return on anything that is a fault in the request — an
+    elink `<ERROR>`, a response with no LinkSet, an efetch fault — and the raise
+    propagates past `write_fulltext_cache`, so nothing is written. A `None` that
+    reaches the cache is always elink answering "no PMC article is linked to
+    this PMID", never "NCBI did not answer".
+
+    Raises `ValueError` for a malformed PMID, `PubMedLookupError` when the
+    service faulted, and `ingest.errors.TransportError` when a request fails and
+    retrying does not help. Never raises for a paper that simply is not in PMC.
     """
     pmid = str(pmid).strip()
     if not PMID_RE.match(pmid):
@@ -408,10 +415,43 @@ def elink_pmcid(pmid: str, *, client: Any | None = None) -> str | None:
 
 
 def parse_pmcid(payload: bytes | str, pmid: str) -> str | None:
-    """Pull the PMCID out of an elink response, or None when it links to no PMC record."""
+    """Pull the PMCID out of an elink response, or None when it links to no PMC record.
+
+    Returning None is a **statement about the paper**: elink answered, and its
+    answer was that no PMC article is linked. Everything that is instead a
+    statement about the *request* — a server fault, a response with no LinkSet
+    at all — raises, because the caller caches None forever and a cached
+    "not in PMC" that was really "NCBI was down" is indistinguishable from the
+    truth on every later run.
+
+    That is not hypothetical: elink spent an outage returning
+
+        <eLinkResult><ERROR>NCBI C++ Exception: ... Read failed: EOF</ERROR></eLinkResult>
+
+    for every PMID, including papers known to be in PMC. The old code found no
+    `LinkSet`, fell through, and reported "no PMC record" for the entire gold
+    set. See the 2026-08-11 NOTES.md entry.
+    """
     root = _parse_xml(payload, f"elink response for PMID {pmid}")
 
-    for link_set in root.findall("LinkSet"):
+    faults = [_text(node) for node in root.iter("ERROR")]
+    if faults:
+        raise PubMedLookupError(
+            f"elink reported an error for PMID {pmid} rather than a link set: "
+            f"{faults[0][:300]}\n"
+            "  This is a fault in the request, not an answer about the paper, so it is "
+            "not cached as 'no PMC record'."
+        )
+
+    link_sets = root.findall("LinkSet")
+    if not link_sets:
+        raise PubMedLookupError(
+            f"elink response for PMID {pmid} carries no LinkSet and no ERROR; refusing "
+            "to read it as 'no PMC record'.\n"
+            f"  payload excerpt:\n{_excerpt(payload)}"
+        )
+
+    for link_set in link_sets:
         requested = _text(link_set.find("IdList/Id"))
         if requested and requested != pmid:
             raise PubMedLookupError(
@@ -470,6 +510,17 @@ def parse_full_text(payload: bytes | str, pmcid: str) -> str | None:
     matches in a paper.
     """
     root = _parse_xml(payload, f"PMC efetch response for {pmcid}")
+
+    # Same split as `parse_pmcid`, and the case matters. Upper-case `<ERROR>` is
+    # an E-utilities fault — a statement about the request — and must not be
+    # cached as an answer. Lower-case `<error>` inside `<pmc-articleset>` is
+    # PMC's way of saying it will not serve this article, which *is* the answer.
+    faults = [_text(node) for node in root.iter("ERROR")]
+    if faults:
+        raise PubMedLookupError(
+            f"PMC efetch reported an error for {pmcid} rather than an article: "
+            f"{faults[0][:300]}"
+        )
 
     article = root.find("article") if root.tag != "article" else root
     if article is None:

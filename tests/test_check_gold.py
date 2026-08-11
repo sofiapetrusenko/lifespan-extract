@@ -1233,3 +1233,40 @@ def test_apply_rewrites_still_writes_a_whole_word_candidate():
 
     assert check_gold.apply_rewrites(body, [good], TYPESET_FULL_TEXT) == 1
     assert body["experiments"][0]["strain"]["source_quote"].startswith("UM‐HET3")
+
+
+def test_a_faulting_full_text_lookup_is_a_skip_not_an_unverifiable(tmp_path, validator):
+    """The distinction the elink bug destroyed, checked at the layer above.
+
+    `unverifiable` says nobody can check this quote — a fact about the paper.
+    `skipped` says we did not check it — a fact about the run. A service outage
+    is the second, and reporting it as the first would launder an unanswered
+    request into a settled statement about the source.
+    """
+    def faulting(_pmid):
+        raise RuntimeError("elink reported an error rather than a link set")
+
+    body = with_full_text_quote("microencapsulated and fed at 14 ppm")
+    report = check_file(write(tmp_path, "x.json", body), validator, abstracts(), faulting)
+
+    counts = report.counts("full_text")
+    assert counts["skipped"] == 1
+    assert counts["unverifiable"] == 0
+    assert not report.failed
+
+
+def test_a_skipped_full_text_quote_blocks_promotion_like_any_other(dirs, capsys, monkeypatch):
+    """An outage must not make a draft look promotable."""
+    _gold, drafts = dirs
+
+    def faulting(_pmid):
+        raise RuntimeError("elink reported an error rather than a link set")
+
+    monkeypatch.setattr(check_gold, "make_abstract_lookup", lambda **_: abstracts())
+    monkeypatch.setattr(check_gold, "make_full_text_lookup", lambda **_: faulting)
+    draft = write(drafts, "miller2011.json",
+                  scaffolded_with_full_text_quote("microencapsulated and fed at 14 ppm"))
+
+    assert main(promote_argv(draft)) == 1
+    assert draft.exists()
+    assert "could not be checked" in capsys.readouterr().out

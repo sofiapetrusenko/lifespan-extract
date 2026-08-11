@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/sofiapetrusenko/lifespan-extract/blob/main/schema/experiment.schema.json",
   "title": "lifespan-extract paper record",
-  "x-schema-version": "0.3.0",
+  "x-schema-version": "0.4.0",
   "description": "One file = one paper. A paper contributes one experiment entry per (organism, intervention) pair, so multi-organism papers yield multiple entries in experiments[]. Claim fields carry provenance; paper metadata is flat because it comes from the ingest API rather than the prose.",
   "type": "object",
   "required": ["schema_version", "paper", "experiments"],
@@ -210,6 +210,12 @@
         },
 
         "organism": { "$ref": "#/$defs/claim_organism" },
+
+        "species": {
+          "allOf": [{ "$ref": "#/$defs/claim_string_nullable" }],
+          "description": "The actual species, free text, when `organism` cannot name it. `organism` is a closed enum sized for the MVP filters, so every organism outside it collapses to `other` — and two `other` records are then indistinguishable. A multi-organism paper is where that bites: Eisenberg 2009 reports yeast, flies and worms, and its yeast and fly records differ in no field the schema validates. Populate this whenever `organism` is `other`; optional and null elsewhere, where the enum already says it. Not a substitute for `strain`, which is a strain within a species and is often `not_reported` when the species is not in doubt.",
+          "examples": ["S. cerevisiae", "D. melanogaster", "D. rerio", null]
+        },
 
         "strain": {
           "allOf": [{ "$ref": "#/$defs/claim_string" }],

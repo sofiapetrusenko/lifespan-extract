@@ -375,3 +375,72 @@ Verbatim, unique in the source, and gibberish — the front of `extension` had b
 **The fix, in two independent places.** `best_slice` now snaps both boundaries to whitespace edges, scoring the contracted and expanded form of each and keeping the best-matching combination (ties to the shorter slice). Separately, `plan_rewrite` refuses any candidate that begins or ends adjacent to a word character, and `apply_rewrites` re-checks the same condition against the source and **raises** rather than skipping. The second and third checks are unreachable while the first is correct, and that is the point: this is the only code path in the repo that edits `data/gold/`, and one guard on it is one more than zero but fewer than it deserves.
 
 Recorded because the general lesson outlives this bug: a string-similarity search is a *search*, and its output is a candidate, not a quote. Anything that promotes a search result into ground truth needs a check that the result is well-formed on its own terms, not merely that it scored well.
+
+---
+
+## 2026-08-11 — elink returned a fault and the checker read it as "not in PMC"
+
+### The bug
+
+`parse_pmcid` walked `LinkSet/LinkSetDb` looking for the `pubmed_pmc` link, and returned `None` if it found none. `None` means "this paper has no PMC article", and `fetch_full_text` caches it. An elink response carrying a server fault has no `LinkSet` at all, so it fell through the same path and was cached as a settled fact about the paper.
+
+Found while checking whether Eisenberg 2009 (PMID 19801973) is in PMC. It is not — NCBI's ID converter says `Identifier not found in PMC`, and that is the right answer. But the answer arrived through the broken path, and testing the same call on PMID 27312235, which is certainly `PMC5013015`, returned "no PMC record" too. elink was serving this to every query:
+
+```
+<eLinkResult><ERROR>NCBI C++ Exception: ... Read failed: EOF (the other side
+has unexpectedly closed connection), peer: 130.14.18.86:8064</ERROR></eLinkResult>
+```
+
+Three consecutive attempts, every PMID. A service outage, presented by our code as a property of the literature.
+
+### Blast radius
+
+The gold set read clean throughout, because `--all` uses the cache and the cache was warm from before the outage. The exposure was `--refresh`, and it was total: re-resolving during the outage would have written `pmcid: null, text: null` for all four PMC papers and cached it, flipping **all 128 full-text quotes to `unverifiable`** — `harrison2009` 8, `martinmontalvo2013` 15, `strong2016` 95, `lakowski1998` 7 — with the run still exiting 0, because unverifiable is a warning by design. Simulated against a throwaway cache directory to confirm rather than assume: `strong2016` re-resolved to `pmcid=None`.
+
+The failure would have looked exactly like a correct result. Nothing distinguishes "PMC does not have this paper" from "PMC did not answer" once the answer is on disk, and the next `--refresh` would have been months later.
+
+### The distinction that failed
+
+`PMCFullText` was designed around exactly this: a *fact about the paper* (not in the open-access subset — a warning, unverifiable, blocks promotion) against a *fact about the request* (we could not find out — a skip). `make_full_text_lookup` keeps them apart by protocol, returning `None` for the first and raising for the second, and `check_file` maps them to different statuses. That design is sound and it held. It was simply built on a lower layer that had already collapsed the two, one function down, where `None` was doing double duty.
+
+The lesson is about where a distinction has to be enforced, not whether it is documented. Three layers agreed on the difference between "no" and "don't know"; the one that produced the value did not, and the agreement above it was worth nothing.
+
+### The fix
+
+`parse_pmcid` now raises `PubMedLookupError` on any `<ERROR>` element, and on a response carrying no `LinkSet` at all — refusing to read either as "no PMC record". `parse_full_text` gets the same guard, with the case distinction that matters there: upper-case `<ERROR>` is an E-utilities fault and raises, lower-case `<error>` inside `<pmc-articleset>` is PMC declining to serve the article and is a real answer. Because the raise propagates before `write_fulltext_cache`, a negative that was not positively established is never written — that is now stated in `fetch_full_text`'s contract and pinned by a test asserting the cache file does not exist after a fault.
+
+One cache entry was written by the broken path during the outage — `data/.abstract_cache/19801973.fulltext.json`. Its content is correct, confirmed independently against the ID converter, but it was not positively established and is being deleted so it is re-derived once elink recovers.
+
+---
+
+## 2026-08-11 — schema v0.4.0: `species`, and why `organism` was not extended
+
+Additive, so every existing record still validates: all 8 gold files pass unchanged, and omitting the field entirely is legal.
+
+### The gap this closes
+
+`organism` is a closed enum — `C. elegans | M. musculus | M. mulatta | other` — and `other` exists so an out-of-scope paper can be labelled truthfully rather than forced into a wrong bucket. It does that, and loses the species on the way. Found while scoping Eisenberg 2009, which reports spermidine in yeast, flies, worms and human immune cells. Building its yeast and fly records and diffing them field by field, under v0.3.0:
+
+```
+DIFFERS  experiment_id      an id slug, pattern-matched but never checked against organism
+same     organism           {"value": "other"} — identical
+DIFFERS  strain             "BY4741" / "w1118"
+same     sex, sample_size, intervention, mechanism, lifespan_effect, notes
+```
+
+Two records, indistinguishable in every field that means anything. `strain` is not a fix: it names a strain *within* a species, it is legitimately `not_reported` in plenty of papers, and `BY4741` identifies the organism only to a reader who already knows. `experiment_id` is not a fix either: the convention puts an organism slug in it, but the pattern is `^[a-z0-9]+(-[a-z0-9]+)+$` and nothing validates the slug against `organism.value` or aggregates on it.
+
+### Why not extend the enum
+
+Tempting and wrong. `organism` is the **filter vocabulary** — `GET /experiments?organism=` and the Phase 3 eval both key on it, and PLAN.md scopes the MVP to three organisms. Adding `S. cerevisiae` and `D. melanogaster` to the enum would put out-of-scope organisms into the API's aggregates and the eval's denominator, changing what the MVP claims to cover in order to fix a labelling problem. `species` keeps the two concerns apart: `organism` stays the coarse bucket the product filters on, `species` carries what the paper actually studied.
+
+Populate `species` whenever `organism` is `other`. Elsewhere it is optional and null — the enum already says it, and duplicating `C. elegans` into a free-text field would create a second spelling to keep consistent.
+
+### Fourth of four gaps, and the first one closed
+
+1. Per-statistic direction (Miller 2011) — **open**
+2. Survival-at-timepoint (Colman 2009) — **open**
+3. Multi-source provenance (Strong 2016 summed `sample_size`) — **open**
+4. Species below the organism enum (Eisenberg 2009) — **closed by this release**
+
+The fourth was separable from the other three, which is why it went first. The first three all change the shape of `lifespan_effect` or of the claim wrapper itself, they interact, and none of them has an obvious design yet; this one adds a field beside `strain` and touches nothing else. Closing it now does not prejudge them, and Eisenberg 2009 can be labelled without waiting.

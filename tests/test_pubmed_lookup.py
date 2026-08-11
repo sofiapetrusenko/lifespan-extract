@@ -518,3 +518,74 @@ def test_full_text_cache_version_is_independent_of_the_abstract_cache(tmp_path):
 
 def test_read_full_text_cache_returns_none_when_absent(tmp_path):
     assert pubmed_lookup.read_fulltext_cache("404", cache_dir=tmp_path) is None
+
+
+# --------------------------------------------------------------------------
+# elink faults: a statement about the request, never about the paper
+# --------------------------------------------------------------------------
+
+# The payload NCBI actually served, for every PMID, during the 2026-08-11
+# outage — including papers known to be in PMC. The old parser found no
+# LinkSet, fell through, and reported "no PMC record".
+ELINK_ERROR_XML = """<?xml version="1.0"?>
+<eLinkResult>
+  <ERROR>NCBI C++ Exception:
+    Error: TXCLIENT(CException::eUnknown) --- Read failed: EOF (the other side
+    has unexpectedly closed connection), peer: 130.14.18.86:8064
+  </ERROR>
+</eLinkResult>
+"""
+
+ELINK_EMPTY_XML = '<?xml version="1.0"?><eLinkResult></eLinkResult>'
+
+
+def test_parse_pmcid_raises_on_an_error_payload():
+    """The bug: this used to be indistinguishable from 'not in PMC'."""
+    with pytest.raises(PubMedLookupError, match="rather than a link set"):
+        pubmed_lookup.parse_pmcid(ELINK_ERROR_XML, "27312235")
+
+
+def test_parse_pmcid_raises_when_there_is_no_link_set_at_all():
+    with pytest.raises(PubMedLookupError, match="no LinkSet and no ERROR"):
+        pubmed_lookup.parse_pmcid(ELINK_EMPTY_XML, "27312235")
+
+
+def test_parse_pmcid_still_returns_none_for_a_genuine_no_pmc_answer():
+    """The fix must not turn a real negative into an exception."""
+    assert pubmed_lookup.parse_pmcid(ELINK_NO_PMC_XML, "19587680") is None
+
+
+def test_fetch_full_text_does_not_cache_a_negative_it_did_not_establish(tmp_path):
+    """A cached 'not in PMC' that was really 'NCBI was down' is indistinguishable
+    from the truth on every later run. So it must not be written."""
+    client = RoutingStubClient(elink=ELINK_ERROR_XML)
+    with pytest.raises(PubMedLookupError):
+        pubmed_lookup.fetch_full_text("27312235", cache_dir=tmp_path, client=client)
+
+    assert not pubmed_lookup.fulltext_cache_path("27312235", cache_dir=tmp_path).exists()
+    assert pubmed_lookup.read_fulltext_cache("27312235", cache_dir=tmp_path) is None
+
+
+def test_fetch_full_text_does_cache_a_genuine_negative(tmp_path):
+    """The other half of the contract: a real 'no PMC record' is still cached,
+    so a closed-access paper is not re-asked on every run."""
+    client = RoutingStubClient(elink=ELINK_NO_PMC_XML)
+    record = pubmed_lookup.fetch_full_text("19587680", cache_dir=tmp_path, client=client)
+
+    assert record.pmcid is None and record.text is None
+    assert pubmed_lookup.fulltext_cache_path("19587680", cache_dir=tmp_path).exists()
+    assert pubmed_lookup.read_fulltext_cache("19587680", cache_dir=tmp_path) == record
+
+
+def test_parse_full_text_raises_on_a_eutils_fault():
+    """Upper-case <ERROR> is a fault; lower-case <error> is PMC's answer."""
+    with pytest.raises(PubMedLookupError, match="rather than an article"):
+        pubmed_lookup.parse_full_text(
+            '<pmc-articleset><ERROR>backend failed</ERROR></pmc-articleset>', "PMC1"
+        )
+
+
+def test_parse_full_text_still_returns_none_for_pmcs_own_error_element():
+    assert pubmed_lookup.parse_full_text(
+        '<pmc-articleset><error>cannot get document</error></pmc-articleset>', "PMC1"
+    ) is None
