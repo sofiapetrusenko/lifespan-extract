@@ -235,3 +235,28 @@ Miller 2011 is the case that surfaced it. Its abstract gives median survival as 
 **What that costs.** `max_change_pct: null` now means two different things and nothing distinguishes them: "the paper says nothing about maximum lifespan" and "the paper says maximum lifespan increased but gives no number". Phase 3 per-field eval scores `max_change_pct` on the value alone, so both read as an unremarkable null and a model that correctly extracts the qualitative max claim gets no credit for it — the same blindness the median/mean/max split under v0.2.0 was created to avoid, one level down. It is also a `not_reported`-honesty problem in the direction PLAN.md Phase 3 already flags: absence and unquantified-presence are not the same answer.
 
 **Candidate for v0.4.0.** Not designed here, and deliberately not fixed unilaterally mid-labeling — it changes the shape of every `lifespan_effect`. The two obvious shapes are a per-statistic direction (each `_change_pct` gains a sibling direction, verbose but symmetric) or a nullable qualitative member on the numeric wrappers themselves. Both are additive and neither invalidates an existing record. Whichever is chosen, the Miller 2011 draft is the migration test case.
+
+---
+
+## 2026-08-11 — the `data/gold/` write boundary moved, and what still holds
+
+**What changed.** `scripts/check_gold.py --promote` is now the one piece of code permitted to write into `data/gold/`. Until today the rule in CLAUDE.md and PLAN.md was absolute — "NEVER write to `data/gold/`", "never modified by automation" — and it is no longer true, so both were amended rather than left to rot into folklore that the tooling openly contradicts.
+
+**Why it moved.** Promotion was already happening; it was just happening by hand. A labeller finishing a draft had to strip `_abstract` and `_journal`, copy the file across, and delete the draft, in three steps, from memory, after the checks passed. That is exactly the kind of manual transcription step that the verbatim-quote checker exists to distrust everywhere else in this pipeline. It also had a failure mode with teeth: the strip is what the *checker* did in memory, not what the labeller did on disk, so a file could pass `check_gold.py` and then be rejected by the pre-commit hook — see the parity note below.
+
+**What still holds, and is now stated in both files:**
+
+- `data/gold/` is *human-controlled*, not merely *not-automated*. An agent never writes there — no editor tool, no shell command, and no invoking a script that would. Reading is unrestricted and always was.
+- `--promote` is a **human-invoked** command. An agent handing back the exact command for the human to run is the intended flow; an agent running it is not, and the PreToolUse hook blocks it explicitly rather than relying on the rule being read.
+- It refuses on any failing check, on a quote that was *unverified* rather than verified (PubMed unreachable, `--no-quotes`), on a target that already exists, and on a cross-file failure anywhere in the run. Refusing on an unverified quote is the load-bearing one: exiting zero means "nothing is known to be wrong", promoting means "this is the answer key now", and only one of those claims needs the abstract to have actually been read.
+- It never overwrites. A draft beside a finished gold file is a mistake to report, not a merge to attempt.
+
+### The parity bug that prompted it
+
+`scaffold_gold.py` parks `_abstract` and `_journal` at the top level so a labeller can read the paper beside the fields they are filling in. `check_gold.py` stripped those keys before validating; `validate_gold.py` — which the pre-commit hook runs — does not. So a scaffolded file sitting in `data/gold/` passed `check_gold.py` cleanly and was then refused by the hook on `additionalProperties`, with an error naming a key the labeller had been told was fine. Two tools, one schema, opposite answers about the same file.
+
+Fixed at the source rather than by teaching `validate_gold.py` to strip too, which would have propagated the leniency into the pre-commit hook and made the scaffolding keys committable. `check_gold.py` now keys off location: under `data/gold/` the keys are a `FAIL` **and the document is validated unstripped**, so the schema errors it prints are character-for-character the ones the hook will print. Under `data/drafts/` — or any other path — the old strip-then-validate behaviour stands, with the strip stated as an `INFO` line rather than done silently. A test asserts the two tools agree on the same file rather than asserting a hardcoded message, so the parity cannot drift back apart.
+
+### Hook precision
+
+The PreToolUse hook (`.claude/hooks/protect_paths.py`) blocked any Bash command that *mentioned* a protected path and contained a write-ish token anywhere in the string. `head -c 300 data/gold/miller2011.json 2>/dev/null` was refused: the `>` it matched belonged to `2>/dev/null`. Rewritten to ask whether a protected path is the **target** of a write — redirection targets, destructive commands, in-place edits — rather than whether a write character appears somewhere in the line. Reads pass. Anything it cannot parse well enough to be sure about is still blocked, and an agent-invoked `--promote` is blocked outright, matching the amended rule above.

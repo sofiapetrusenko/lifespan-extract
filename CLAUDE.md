@@ -5,7 +5,14 @@
 - All work happens on a branch named `phase-N-<short-name>`. Open a PR; never push to `main`.
 
 ## Hard boundaries
-- NEVER write to `data/gold/` — it is human-labeled ground truth. Read-only, always.
+- `data/gold/` is human-controlled ground truth. **Agents never write to it** — not
+  with an editor tool, not with a shell command, not by invoking a script that does.
+  Reading it is always fine.
+  The ONLY permitted programmatic write is `scripts/check_gold.py --promote`,
+  **invoked explicitly by the human**, and only after every check on the file passes:
+  it strips the draft scaffolding keys, writes the record into `data/gold/`, and
+  deletes the draft. An agent must not run `--promote` on the human's behalf — hand
+  back the exact command and let them run it.
 - Do not add dependencies beyond `requirements.txt` / `package.json` without listing each new one in the PR description with a one-line reason.
 - Do not touch `.env`, credentials, or deployment config unless the task explicitly says so.
 
@@ -13,8 +20,9 @@
 - Phases are executed via `/run-phase N`: implementer -> checks -> reviewer
   (fresh context), repeated until the reviewer returns zero REQUIRED items,
   capped at 5 iterations.
-- A PreToolUse hook physically blocks writes to `data/gold/` and `.claude/`.
-  A BLOCKED message is a signal to stop and report, never to route around.
+- A PreToolUse hook physically blocks writes to `data/gold/` and `.claude/`, including
+  agent-invoked `--promote`. Reads are allowed. A BLOCKED message is a signal to stop
+  and report, never to route around — including by rephrasing the command.
 - Never modify reviewer.md, hooks, settings, or ci.yml to make a review or
   check pass. If a check seems wrong, say so in the report — the human decides.
 

@@ -17,7 +17,8 @@ evals/         gold-set runner, per-field accuracy, DrugAge cross-validation
 api/           FastAPI: /experiments (filters), /interventions/{agent} (aggregate)
 web/           Next.js dashboard: filterable table, intervention pages, CSV export
 schema/        JSON Schema for experiment records (source of truth)
-data/gold/     hand-labeled gold set — NEVER modified by automation
+data/gold/     hand-labeled gold set — human-controlled (see working agreements)
+data/drafts/   in-progress labels, gitignored; promoted into data/gold/ by hand
 ```
 
 **Stack:** Python 3.11, FastAPI, SQLModel, PostgreSQL; Next.js + TypeScript; pytest; GitHub Actions.
@@ -101,7 +102,11 @@ UI (design matters — target user is a scientist):
 ## Working agreements (for Claude Code sessions)
 
 - One phase = one session = one PR. Do not run ahead.
-- `data/gold/` is human-labeled ground truth. Never write to it programmatically.
+- `data/gold/` is human-controlled ground truth. Claude Code never writes to it. The
+  one permitted programmatic write is `scripts/check_gold.py --promote`, run by the
+  human, and only on a draft that passes every check — schema, verbatim quotes,
+  cross-file consistency. It refuses on any failure, on an unverified quote, and on
+  an existing target; it never overwrites a record.
 - Evals are written with the human driving; Claude Code assists, not the reverse.
 - Prefer loud failure over silent fallback everywhere.
 - Small commits, written by the human, in English.
