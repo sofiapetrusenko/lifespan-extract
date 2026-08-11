@@ -280,3 +280,38 @@ Colman 2009 is the case. Its abstract gives no lifespan statistic at all: "At th
 Every wrapper in this record is `high` except `lifespan_effect.direction`, which is `medium`. The distinction is between reading and reasoning. Organism, agent, intervention type, and every `not_reported`/null are read verbatim off the abstract — the text either says rhesus macaques or it does not. `direction: increase` is not read off anything: the abstract states no lifespan statistic, so the value is an inference from a claim about aging-related mortality to a claim about lifespan direction. That is a defensible inference and still the right label, but it is a different epistemic act from transcription, and the confidence field is where that difference is supposed to show up.
 
 **The existing gold files barely exercise this field, and are worth a review pass.** Measured across all six: `harrison2009` 28/28 `high`, `kenyon1993` 14/14, `martinmontalvo2013` 28/28, `miller2011` 56/56 — four files with no variation at all. `lakowski1998` is 13 `high` / 1 `medium` and `strong2016` is 118 `high` / 8 `medium`. So the field is not literally constant, but 9 non-`high` values out of 266 is close enough that the concern stands: a confidence field that almost never varies is not measuring anything, and Phase 3 scores it by exact category match, so a gold set that is ~97% `high` makes "always answer high" a near-perfect strategy. Either the labelling really was that uniform — plausible for abstracts that state their numbers outright — or `high` has been the default keystroke rather than a judgement. Worth re-reading the six files with the reading-versus-reasoning line above in hand before Phase 3 treats the field as a signal.
+
+---
+
+## 2026-08-11 — labeling Mattison 2012: the splitting rule, the conflicting pair, and an eval question
+
+### (a) When a paper becomes more than one record
+
+Stated explicitly because it has been applied consistently for seven files without ever being written down, and the Mattison abstract is the first case where the tempting answer is the wrong one.
+
+**Split into separate records only when the source reports separate results.** The unit is a reported result, not a cohort, an arm, or a demographic label. If the paper resolves a number or a direction for each group, each group earns a record; if one statement covers several groups, they share one.
+
+Applied to the set as it stands:
+
+- **Split.** `harrison2009` reports rapamycin per sex — mean 9% / max 9% in males, 13% / 14% in females — so it is two records. `miller2011` likewise, median 10% male and 18% female. `strong2016` splits acarbose the same way. `martinmontalvo2013` splits metformin by dose, two doses with two results.
+- **Not split.** `mattison2012` states one survival result for the young and the older monkeys together, so it is one record and `age_at_start` spans both cohorts. `miller2011`'s resveratrol and simvastatin arms each carry a single statement covering males and females, recorded once with `sex: mixed`. Several `strong2016` records are `sex: mixed` for the same reason.
+
+The failure mode this prevents is inventing rows. Splitting Mattison into a young record and an older record would produce two records whose `lifespan_effect` is a copy of one sentence, doubling the paper's weight in any aggregate and in the Phase 3 eval denominator while adding no information. That is the same objection as the v0.2.0 guideline against giving unreported cohorts their own records, seen from the other direction: there, a record with no result; here, two records sharing one.
+
+Note the rule keys on the *reported result*, not on `sex` or dose being knowable. `sex: mixed` and a cohort-spanning `age_at_start` are the honest encodings of a statement that genuinely did not separate them.
+
+### (b) Colman 2009 / Mattison 2012 is the strongest conflicting-evidence case in the set
+
+Same intervention (`caloric restriction`), same organism (`M. mulatta`), opposite `lifespan_effect.direction` — `increase` against `no_effect`. Nothing else in the gold set puts two papers on opposite sides of the direction field. The rapamycin pair (`harrison2009` / `miller2011`) is a *consistency* pair: it tests that the same finding is extracted the same way twice, which is a different property.
+
+What makes this pair unusually strong is that the disagreement is not an artefact of two labellers reading two papers — **Mattison's own abstract names the contrast**, citing the WNPRC result and setting its own against it. The conflict is asserted by the source, so a Phase 5 contradiction detector grouping by (intervention, organism) and flagging opposite directions has a case where the ground truth is not a judgement call. The v0.3.0 entry above anticipated this pair as the reason `M. mulatta` entered the enum; both records now exist and the case is real rather than planned.
+
+Worth stating for whoever reads the two files side by side: the paired records are *deliberately* asymmetric in provenance. Colman's `direction` is `medium` confidence, inferred from an aging-related-mortality claim; Mattison's is `high`, read off a sentence that states the survival result outright. Neither record carries a single lifespan number. The pair disagrees on direction with no effect sizes on either side.
+
+### (c) Open question for Phase 3 — free-text fields cannot be scored by exact string match
+
+`age_at_start`, `strain`, `dose` and `mechanism` are open vocabulary. `mattison2012.age_at_start` is `"young and older age"`, sliced verbatim from the abstract. A model that returns `"young and old"`, `"young and older"`, or `"young and older age rhesus monkeys"` has extracted the same fact and would score zero under exact match. `strain` has the same problem in the other direction, where `"genetically heterogeneous"` and `"UM-HET3"` denote the same animals in the ITP papers.
+
+This is not the `confidence` problem from the Colman entry, where the enum is right and the labels barely vary. Here the field is genuinely unbounded and exact match is the wrong metric — it would report extraction failures that are not failures, and the resulting number would be uninterpretable rather than merely harsh.
+
+**Not decided here.** It is an eval-design decision, due when Phase 3 defines per-field scoring, and it needs a rule per field rather than one global tolerance: normalized-substring containment might suit `age_at_start`, a synonym table is closer to what `strain` needs, and `mechanism` may want neither. Recording it now so the question is on the table before the metric is written, rather than discovered when the first eval reports a suspiciously low free-text score. The v0.1.0 note that closed enums are compared by exact match still stands and is unaffected.

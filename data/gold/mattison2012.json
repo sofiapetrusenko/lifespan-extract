@@ -1,0 +1,104 @@
+{
+  "schema_version": "0.3.0",
+  "paper": {
+    "doi": "10.1038/nature11432",
+    "title": "Impact of caloric restriction on health and survival in rhesus monkeys from the NIA study.",
+    "year": 2012,
+    "source": "pubmed",
+    "pmid": "22932268"
+  },
+  "experiments": [
+    {
+      "experiment_id": "mattison2012-mmulatta-caloric-restriction",
+      "organism": {
+        "value": "M. mulatta",
+        "source_quote": "We report here that a CR regimen implemented in young and older age rhesus monkeys at the National Institute on Aging (NIA) has not improved survival outcomes.",
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "strain": {
+        "value": "not_reported",
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "sex": {
+        "value": "not_reported",
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "sample_size": {
+        "value": null,
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "intervention": {
+        "type": {
+          "value": "dietary",
+          "source_quote": "We report here that a CR regimen implemented in young and older age rhesus monkeys at the National Institute on Aging (NIA) has not improved survival outcomes.",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "agent": {
+          "value": "caloric restriction",
+          "source_quote": "We report here that a CR regimen implemented in young and older age rhesus monkeys at the National Institute on Aging (NIA) has not improved survival outcomes.",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "dose": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "age_at_start": {
+          "value": "young and older age",
+          "source_quote": "We report here that a CR regimen implemented in young and older age rhesus monkeys at the National Institute on Aging (NIA) has not improved survival outcomes.",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        }
+      },
+      "mechanism": {
+        "value": null,
+        "source_quote": null,
+        "confidence": "high",
+        "extracted_from": "abstract"
+      },
+      "lifespan_effect": {
+        "direction": {
+          "value": "no_effect",
+          "source_quote": "We report here that a CR regimen implemented in young and older age rhesus monkeys at the National Institute on Aging (NIA) has not improved survival outcomes.",
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "median_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "mean_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "max_change_pct": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        },
+        "p_value": {
+          "value": null,
+          "source_quote": null,
+          "confidence": "high",
+          "extracted_from": "abstract"
+        }
+      },
+      "notes": "One record rather than a split by age cohort: the abstract's single survival statement covers both the young and the older monkeys together, so there is no separate result to attach to either and age_at_start spans both. The abstract explicitly contrasts this result with the ongoing WNPRC study (Colman 2009), which reported improved survival; WNPRC's dose and age range are that paper's data and are deliberately not transcribed into this record."
+    }
+  ]
+}
