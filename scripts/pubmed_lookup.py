@@ -5,6 +5,13 @@ Shared by the two gold-set support tools: `scaffold_gold.py` needs the metadata
 and the abstract to seed a draft, `check_gold.py` needs the abstract to verify
 that every `source_quote` is verbatim.
 
+`fetch_full_text` is the same idea one level up: resolve the PMID to a PMCID
+with elink, and if the paper is in the PMC open-access subset, fetch and flatten
+its JATS body so `check_gold.py` can verify the quotes marked
+`extracted_from: full_text` too. A paper that is not in PMC OA is a *cached
+negative*, not an error — most journals are not, and that answer is as much a
+result as the text is.
+
 Why this is not `ingest/pubmed.py`:
 
 * `ingest.fetch_abstracts` is query-driven (esearch -> efetch) and projects onto
@@ -25,6 +32,9 @@ The cache is a directory of JSON files under `data/.abstract_cache/`, so that a
 `check_gold.py --all` run over a growing gold set makes at most one network
 call per paper, ever. Entries carry a `cache_version`: bumping the constant
 invalidates every entry rather than silently mixing outputs of two parsers.
+Full text lands in the same directory under `<pmid>.fulltext.json`, with its own
+version constant — the two parsers change independently, and re-downloading
+every abstract because the JATS flattener moved would be wasteful.
 """
 
 from __future__ import annotations
@@ -46,7 +56,18 @@ CACHE_DIR = REPO_ROOT / "data" / ".abstract_cache"
 # same XML. Old entries are then ignored instead of being trusted.
 CACHE_VERSION = 1
 
+# Independent of CACHE_VERSION: `_flatten_jats` changing must not invalidate
+# every cached abstract, and vice versa.
+FULLTEXT_CACHE_VERSION = 1
+
 EFETCH_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
+ELINK_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/elink.fcgi"
+
+# elink returns several link sets for a PubMed ID and only this one is the
+# article itself. `pubmed_pmc_refs` — the neighbouring set — is the list of PMC
+# articles that *cite* this one, and following it would verify quotes against a
+# different paper entirely.
+PMC_LINKNAME = "pubmed_pmc"
 
 API_KEY_ENV = "NCBI_API_KEY"
 EMAIL_ENV = "NCBI_EMAIL"
@@ -92,6 +113,31 @@ class PubMedRecord:
     year: int | None = None
     doi: str | None = None
     abstract: str | None = None
+
+
+@dataclass(frozen=True)
+class PMCFullText:
+    """What PMC has for one PMID. Three states, all of them answers.
+
+    * `pmcid` set and `text` set — the paper is in the open-access subset and
+      the flattened body is here.
+    * `pmcid` set, `text` None — PMC has the record but efetch returned no
+      `<body>`. That is what a non-open-access deposit looks like: front matter
+      only. The full text exists, we are simply not allowed to read it.
+    * `pmcid` None — PubMed knows of no PMC record at all.
+
+    The last two are deliberately not distinguished by callers: both mean "the
+    quote cannot be checked", which is a warning, never a failure. A quote we
+    cannot check is not a quote we know to be wrong.
+    """
+
+    pmid: str
+    pmcid: str | None = None
+    text: str | None = None
+
+    @property
+    def available(self) -> bool:
+        return self.text is not None
 
 
 def fetch_record(
@@ -250,6 +296,240 @@ def parse_record(payload: bytes | str, pmid: str) -> PubMedRecord:
     )
 
 
+# --------------------------------------------------------------------------
+# PMC full text
+# --------------------------------------------------------------------------
+
+
+def fetch_full_text(
+    pmid: str,
+    *,
+    cache_dir: Path = CACHE_DIR,
+    client: Any | None = None,
+    refresh: bool = False,
+    use_cache: bool = True,
+) -> PMCFullText:
+    """Resolve `pmid` to PMC and return its open-access full text, if any.
+
+    Two calls, both cached together: elink for the PMCID, then efetch for the
+    article. A "not in PMC" answer is cached like any other — otherwise every
+    `check_gold.py --all` run would re-ask NCBI the same question about the same
+    closed-access papers. That does mean an embargo lifting is not noticed until
+    someone passes `--refresh`, which is the right trade for a check that runs
+    on every commit.
+
+    Raises `ValueError` for a malformed PMID and `ingest.errors.TransportError`
+    when a request fails and retrying does not help. Never raises for a paper
+    that simply is not in PMC.
+    """
+    pmid = str(pmid).strip()
+    if not PMID_RE.match(pmid):
+        raise ValueError(f"PMID must be digits only, got {pmid!r}")
+
+    if use_cache and not refresh:
+        cached = read_fulltext_cache(pmid, cache_dir=cache_dir)
+        if cached is not None:
+            return cached
+
+    with ExitStack() as stack:
+        if client is None:
+            import httpx
+
+            client = stack.enter_context(httpx.Client(timeout=httpx.Timeout(TIMEOUT_SECONDS)))
+        pmcid = elink_pmcid(pmid, client=client)
+        text = efetch_full_text(pmcid, client=client) if pmcid else None
+
+    record = PMCFullText(pmid=pmid, pmcid=pmcid, text=text)
+    if use_cache:
+        write_fulltext_cache(record, cache_dir=cache_dir)
+    return record
+
+
+def fulltext_cache_path(pmid: str, *, cache_dir: Path = CACHE_DIR) -> Path:
+    """Sits beside the abstract entry. PMIDs are digits, so `19587680.json` and
+    `19587680.fulltext.json` cannot collide."""
+    return cache_dir / f"{pmid}.fulltext.json"
+
+
+def read_fulltext_cache(pmid: str, *, cache_dir: Path = CACHE_DIR) -> PMCFullText | None:
+    """Return the cached full-text answer for `pmid`, or None for no usable one.
+
+    None means "nothing cached", *not* "not in PMC" — that answer is a cached
+    `PMCFullText` with `text=None`. Callers must not collapse the two: one is a
+    fact about the paper, the other is a fact about this machine's disk.
+    """
+    path = fulltext_cache_path(pmid, cache_dir=cache_dir)
+    if not path.is_file():
+        return None
+    try:
+        payload = json.loads(path.read_text())
+    except (json.JSONDecodeError, OSError) as exc:
+        print(f"warning: ignoring unreadable cache entry {path}: {exc}", file=sys.stderr)
+        return None
+
+    if not isinstance(payload, dict) or payload.get("cache_version") != FULLTEXT_CACHE_VERSION:
+        return None
+    record = payload.get("record")
+    if not isinstance(record, dict):
+        print(f"warning: ignoring malformed cache entry {path}", file=sys.stderr)
+        return None
+    try:
+        return PMCFullText(**record)
+    except TypeError as exc:
+        print(f"warning: ignoring incompatible cache entry {path}: {exc}", file=sys.stderr)
+        return None
+
+
+def write_fulltext_cache(record: PMCFullText, *, cache_dir: Path = CACHE_DIR) -> Path:
+    """Persist `record` and return the file it was written to."""
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    path = fulltext_cache_path(record.pmid, cache_dir=cache_dir)
+    payload = {
+        "cache_version": FULLTEXT_CACHE_VERSION,
+        "fetched_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "record": asdict(record),
+    }
+    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
+    return path
+
+
+def elink_pmcid(pmid: str, *, client: Any | None = None) -> str | None:
+    """Return the `PMC…` id linked to `pmid`, or None if there is none."""
+    request_with_retry = _load_request_with_retry()
+    import httpx
+
+    params = _common_params(db="pmc") | {"dbfrom": "pubmed", "id": pmid, "retmode": "xml"}
+    _throttle()
+    with ExitStack() as stack:
+        if client is None:
+            client = stack.enter_context(httpx.Client(timeout=httpx.Timeout(TIMEOUT_SECONDS)))
+        response = request_with_retry(client, "GET", ELINK_URL, params=params)
+    return parse_pmcid(response.content, pmid)
+
+
+def parse_pmcid(payload: bytes | str, pmid: str) -> str | None:
+    """Pull the PMCID out of an elink response, or None when it links to no PMC record."""
+    root = _parse_xml(payload, f"elink response for PMID {pmid}")
+
+    for link_set in root.findall("LinkSet"):
+        requested = _text(link_set.find("IdList/Id"))
+        if requested and requested != pmid:
+            raise PubMedLookupError(
+                f"asked elink about PMID {pmid} and it answered for {requested!r}. "
+                "Not treating the response as the requested paper."
+            )
+        for link_set_db in link_set.findall("LinkSetDb"):
+            if _text(link_set_db.find("LinkName")) != PMC_LINKNAME:
+                continue
+            ids = [_text(link) for link in link_set_db.findall("Link/Id") if _text(link)]
+            if not ids:
+                continue
+            if len(ids) > 1:
+                raise PubMedLookupError(
+                    f"elink returned {len(ids)} PMC ids for the single PMID {pmid} "
+                    f"({', '.join(ids)}); refusing to guess which article was meant."
+                )
+            return ids[0] if ids[0].upper().startswith("PMC") else f"PMC{ids[0]}"
+    return None
+
+
+def efetch_full_text(pmcid: str, *, client: Any | None = None) -> str | None:
+    """Fetch one PMC article and flatten it, or None when it has no OA body."""
+    request_with_retry = _load_request_with_retry()
+    import httpx
+
+    params = _common_params(db="pmc") | {"id": pmcid, "retmode": "xml"}
+    _throttle()
+    with ExitStack() as stack:
+        if client is None:
+            client = stack.enter_context(httpx.Client(timeout=httpx.Timeout(TIMEOUT_SECONDS)))
+        response = request_with_retry(client, "GET", EFETCH_URL, params=params)
+    return parse_full_text(response.content, pmcid)
+
+
+def parse_full_text(payload: bytes | str, pmcid: str) -> str | None:
+    """Flatten a PMC JATS article into text, or None if it carries no `<body>`.
+
+    A missing `<body>` is the shape of a non-open-access deposit: efetch answers
+    with front matter and stops. Returning None rather than the abstract alone is
+    the point — an abstract dressed up as full text would let a full-text quote
+    "pass" against a text it was never taken from.
+
+    The PMC abstract is included when there *is* a body, because a claim marked
+    `full_text` may still have been quoted from the paper's own abstract, and the
+    PMC wording is the one that will match.
+
+    `<floats-group>` is included too, and must be. Some deposits keep figures and
+    tables inline in `<body>` and others park them all in that sibling element,
+    and a lifespan record quotes figure captions and survival tables constantly —
+    reading only `<body>` silently fails every such quote for half the journals,
+    which looks exactly like a mislabelled gold file.
+
+    References, acknowledgements and the rest of `<back>` are left out: nothing
+    is quoted from them, and they are the largest source of stray substring
+    matches in a paper.
+    """
+    root = _parse_xml(payload, f"PMC efetch response for {pmcid}")
+
+    article = root.find("article") if root.tag != "article" else root
+    if article is None:
+        # `<pmc-articleset><error>...</error></pmc-articleset>` — PMC does not
+        # serve this one. Indistinguishable, for our purposes, from no body.
+        return None
+    body = article.find("body")
+    if body is None:
+        return None
+
+    blocks: list[str] = []
+    for abstract in article.findall("front/article-meta/abstract"):
+        blocks.extend(_flatten_jats(abstract))
+    blocks.extend(_flatten_jats(body))
+    for floats in article.findall("floats-group"):
+        blocks.extend(_flatten_jats(floats))
+    return "\n\n".join(blocks) or None
+
+
+# JATS elements whose text is one contiguous run of prose. Flattening stops at
+# these rather than descending, so inline markup — `<italic>daf-2</italic>`,
+# `H<sub>2</sub>O`, a `<xref>` citation marker — is concatenated with no
+# separator, exactly as it reads on the page. Insert a space there and every
+# quote containing a gene name in italics stops matching.
+_JATS_BLOCK_TAGS = frozenset({"p", "title", "label", "td", "th"})
+
+
+def _flatten_jats(element) -> list[str]:
+    """Return one string per text-bearing block beneath `element`.
+
+    Blocks are joined by the caller with blank lines. That is deliberately more
+    whitespace than the published text has: `check_gold.py` collapses runs of
+    whitespace on both sides before comparing, so extra separation is free,
+    whereas two paragraphs run together would invent a sentence boundary that
+    exists in no version of the paper.
+    """
+    if element.tag in _JATS_BLOCK_TAGS or len(element) == 0:
+        text = "".join(element.itertext())
+        return [text] if text.strip() else []
+    blocks: list[str] = []
+    for child in element:
+        blocks.extend(_flatten_jats(child))
+    return blocks
+
+
+def _parse_xml(payload: bytes | str, what: str):
+    """Parse remote XML with `defusedxml`, or raise `PubMedLookupError`."""
+    from xml.etree.ElementTree import ParseError
+
+    from defusedxml.common import DefusedXmlException
+    from defusedxml.ElementTree import fromstring as parse_xml
+
+    try:
+        return parse_xml(payload)
+    except (ParseError, DefusedXmlException) as exc:
+        raise PubMedLookupError(
+            f"{what} was not parseable XML: {exc}\n  payload excerpt:\n{_excerpt(payload)}"
+        ) from exc
+
+
 def _load_request_with_retry():
     """Import `ingest.http.request_with_retry` lazily.
 
@@ -267,14 +547,17 @@ def _load_request_with_retry():
     return request_with_retry
 
 
-def _common_params() -> dict[str, str]:
+def _common_params(db: str = "pubmed") -> dict[str, str]:
     """Identification parameters NCBI expects on every E-utilities call.
+
+    `db` is a parameter because the full-text path talks to `pmc`; everything
+    else about identification and rate limiting is the same endpoint family.
 
     The API key is optional here for the same reason it is in `ingest/pubmed.py`:
     NCBI's anonymous tier is a documented, supported mode of the API, not a
     degraded stand-in for a credential.
     """
-    params = {"db": "pubmed", "tool": TOOL_NAME}
+    params = {"db": db, "tool": TOOL_NAME}
     email = os.environ.get(EMAIL_ENV, "").strip()
     if email:
         params["email"] = email

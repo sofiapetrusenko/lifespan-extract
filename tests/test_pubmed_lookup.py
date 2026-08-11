@@ -265,3 +265,256 @@ def test_read_cache_warns_and_misses_on_corrupt_json(tmp_path, capsys):
 
 def test_read_cache_returns_none_when_absent(tmp_path):
     assert read_cache("404", cache_dir=tmp_path) is None
+
+
+# --------------------------------------------------------------------------
+# PMC full text
+# --------------------------------------------------------------------------
+
+ELINK_XML = """<?xml version="1.0"?>
+<eLinkResult>
+  <LinkSet>
+    <DbFrom>pubmed</DbFrom>
+    <IdList><Id>19587680</Id></IdList>
+    <LinkSetDb>
+      <DbTo>pmc</DbTo>
+      <LinkName>pubmed_pmc_refs</LinkName>
+      <Link><Id>9999999</Id></Link>
+    </LinkSetDb>
+    <LinkSetDb>
+      <DbTo>pmc</DbTo>
+      <LinkName>pubmed_pmc</LinkName>
+      <Link><Id>2786175</Id></Link>
+    </LinkSetDb>
+  </LinkSet>
+</eLinkResult>
+"""
+
+ELINK_NO_PMC_XML = """<?xml version="1.0"?>
+<eLinkResult>
+  <LinkSet>
+    <DbFrom>pubmed</DbFrom>
+    <IdList><Id>19587680</Id></IdList>
+  </LinkSet>
+</eLinkResult>
+"""
+
+PMC_XML = """<?xml version="1.0"?>
+<pmc-articleset>
+  <article>
+    <front>
+      <article-meta>
+        <title-group><article-title>Rapamycin fed late in life</article-title></title-group>
+        <abstract><p>Rapamycin extends median lifespan.</p></abstract>
+      </article-meta>
+    </front>
+    <body>
+      <sec>
+        <title>Methods</title>
+        <p>Mice were produced by mating
+        CB6F1 females to <italic>C3D2F1</italic> males.</p>
+      </sec>
+      <sec>
+        <title>Results</title>
+        <p>Median survival increased by 14%.</p>
+        <table-wrap>
+          <caption><p>Table 1. Survival by sex.</p></caption>
+          <table><tbody><tr><td>males</td><td>14%</td></tr></tbody></table>
+        </table-wrap>
+      </sec>
+    </body>
+    <back>
+      <ref-list><ref><p>Some citation nobody quotes.</p></ref></ref-list>
+    </back>
+    <floats-group>
+      <fig>
+        <label>Figure 1</label>
+        <caption><p>The arrows at 54 weeks indicate the start of treatment.</p></caption>
+      </fig>
+    </floats-group>
+  </article>
+</pmc-articleset>
+"""
+
+# What efetch returns for a PMC record outside the open-access subset: the front
+# matter, and no <body> at all.
+PMC_NO_BODY_XML = PMC_XML.split("<body>")[0] + "</article></pmc-articleset>"
+
+
+class RoutingStubClient:
+    """Stub client that answers elink and efetch differently.
+
+    `fetch_full_text` makes two calls with one client, so a single canned
+    response cannot exercise it.
+    """
+
+    def __init__(self, elink=ELINK_XML, efetch=PMC_XML):
+        self.elink = elink
+        self.efetch = efetch
+        self.calls: list[tuple[str, str, dict]] = []
+
+    def request(self, method, url, **kwargs):
+        self.calls.append((method, url, kwargs))
+        return StubResponse(self.elink if "elink" in url else self.efetch)
+
+
+def test_parse_pmcid_prefixes_the_bare_numeric_id():
+    assert pubmed_lookup.parse_pmcid(ELINK_XML, "19587680") == "PMC2786175"
+
+
+def test_parse_pmcid_ignores_the_citing_articles_link_set():
+    """`pubmed_pmc_refs` is the papers that cite this one — a different article."""
+    pmcid = pubmed_lookup.parse_pmcid(ELINK_XML, "19587680")
+    assert pmcid != "PMC9999999"
+
+
+def test_parse_pmcid_returns_none_when_there_is_no_pmc_record():
+    assert pubmed_lookup.parse_pmcid(ELINK_NO_PMC_XML, "19587680") is None
+
+
+def test_parse_pmcid_refuses_a_response_about_a_different_pmid():
+    xml = ELINK_XML.replace("<Id>19587680</Id>", "<Id>11111111</Id>", 1)
+    with pytest.raises(PubMedLookupError, match="Not treating the response"):
+        pubmed_lookup.parse_pmcid(xml, "19587680")
+
+
+def test_parse_pmcid_refuses_to_guess_between_several_articles():
+    xml = ELINK_XML.replace(
+        "<Link><Id>2786175</Id></Link>",
+        "<Link><Id>2786175</Id></Link><Link><Id>2786176</Id></Link>",
+    )
+    with pytest.raises(PubMedLookupError, match="refusing to guess"):
+        pubmed_lookup.parse_pmcid(xml, "19587680")
+
+
+def test_parse_full_text_flattens_the_body():
+    text = pubmed_lookup.parse_full_text(PMC_XML, "PMC2786175")
+    assert "Methods" in text
+    assert "Median survival increased by 14%." in text
+
+
+def test_parse_full_text_keeps_inline_markup_contiguous():
+    """`<italic>C3D2F1</italic>` must not become `C3D2F1` with spaces around it."""
+    text = pubmed_lookup.parse_full_text(PMC_XML, "PMC2786175")
+    assert "to C3D2F1 males" in " ".join(text.split())
+
+
+def test_parse_full_text_includes_the_abstract_and_table_captions():
+    text = pubmed_lookup.parse_full_text(PMC_XML, "PMC2786175")
+    assert "Rapamycin extends median lifespan." in text
+    assert "Table 1. Survival by sex." in text
+
+
+def test_parse_full_text_includes_floats_group_figures():
+    """Some deposits park every figure and table outside <body>. Reading only
+    <body> would fail each quote from them, which looks like a bad gold file."""
+    text = pubmed_lookup.parse_full_text(PMC_XML, "PMC2786175")
+    assert "The arrows at 54 weeks indicate the start of treatment." in text
+    assert "Figure 1" in text
+
+
+def test_parse_full_text_leaves_out_the_reference_list():
+    """Nothing is quoted from <back>, and it is the biggest source of stray matches."""
+    text = pubmed_lookup.parse_full_text(PMC_XML, "PMC2786175")
+    assert "Some citation nobody quotes." not in text
+
+
+def test_parse_full_text_returns_none_without_a_body():
+    """A front-matter-only deposit is what closed access looks like from efetch."""
+    assert pubmed_lookup.parse_full_text(PMC_NO_BODY_XML, "PMC2786175") is None
+
+
+def test_parse_full_text_returns_none_for_an_error_payload():
+    xml = '<pmc-articleset><error>cannot get document</error></pmc-articleset>'
+    assert pubmed_lookup.parse_full_text(xml, "PMC2786175") is None
+
+
+def test_fetch_full_text_resolves_then_fetches(tmp_path):
+    client = RoutingStubClient()
+    record = pubmed_lookup.fetch_full_text("19587680", cache_dir=tmp_path, client=client)
+
+    assert record.pmcid == "PMC2786175"
+    assert "Median survival increased by 14%." in record.text
+    assert record.available
+
+    elink_call, efetch_call = client.calls
+    assert elink_call[2]["params"] == {
+        **elink_call[2]["params"],
+        "dbfrom": "pubmed",
+        "db": "pmc",
+        "id": "19587680",
+    }
+    assert efetch_call[2]["params"]["db"] == "pmc"
+    assert efetch_call[2]["params"]["id"] == "PMC2786175"
+
+
+def test_fetch_full_text_for_a_paper_with_no_pmc_record(tmp_path):
+    client = RoutingStubClient(elink=ELINK_NO_PMC_XML)
+    record = pubmed_lookup.fetch_full_text("19587680", cache_dir=tmp_path, client=client)
+
+    assert record.pmcid is None
+    assert record.text is None
+    assert not record.available
+    # No point asking efetch about an article PMC does not have.
+    assert len(client.calls) == 1
+
+
+def test_fetch_full_text_for_a_paper_pmc_has_but_will_not_serve(tmp_path):
+    client = RoutingStubClient(efetch=PMC_NO_BODY_XML)
+    record = pubmed_lookup.fetch_full_text("19587680", cache_dir=tmp_path, client=client)
+
+    assert record.pmcid == "PMC2786175"
+    assert record.text is None
+
+
+def test_fetch_full_text_caches_the_negative_answer(tmp_path):
+    """Otherwise every run re-asks NCBI the same question about the same papers."""
+    client = RoutingStubClient(elink=ELINK_NO_PMC_XML)
+    first = pubmed_lookup.fetch_full_text("19587680", cache_dir=tmp_path, client=client)
+    second = pubmed_lookup.fetch_full_text("19587680", cache_dir=tmp_path, client=client)
+
+    assert first == second
+    assert len(client.calls) == 1
+
+
+def test_fetch_full_text_refresh_bypasses_the_cache(tmp_path):
+    client = RoutingStubClient()
+    pubmed_lookup.fetch_full_text("19587680", cache_dir=tmp_path, client=client)
+    pubmed_lookup.fetch_full_text("19587680", cache_dir=tmp_path, client=client, refresh=True)
+    assert len(client.calls) == 4
+
+
+def test_fetch_full_text_rejects_a_non_numeric_pmid():
+    with pytest.raises(ValueError, match="digits only"):
+        pubmed_lookup.fetch_full_text("PMC12345", client=RoutingStubClient())
+
+
+def test_full_text_cache_round_trips(tmp_path):
+    record = pubmed_lookup.PMCFullText(pmid="1", pmcid="PMC1", text="body")
+    pubmed_lookup.write_fulltext_cache(record, cache_dir=tmp_path)
+    assert pubmed_lookup.read_fulltext_cache("1", cache_dir=tmp_path) == record
+
+
+def test_full_text_cache_sits_beside_the_abstract_entry(tmp_path):
+    """Both are keyed by PMID; the names must not collide."""
+    write_cache(PubMedRecord(pmid="1", title="T", abstract="A"), cache_dir=tmp_path)
+    pubmed_lookup.write_fulltext_cache(
+        pubmed_lookup.PMCFullText(pmid="1", pmcid="PMC1", text="body"), cache_dir=tmp_path
+    )
+
+    assert read_cache("1", cache_dir=tmp_path).abstract == "A"
+    assert pubmed_lookup.read_fulltext_cache("1", cache_dir=tmp_path).text == "body"
+
+
+def test_full_text_cache_version_is_independent_of_the_abstract_cache(tmp_path):
+    record = pubmed_lookup.PMCFullText(pmid="1", pmcid="PMC1", text="body")
+    path = pubmed_lookup.write_fulltext_cache(record, cache_dir=tmp_path)
+    payload = json.loads(path.read_text())
+    payload["cache_version"] = pubmed_lookup.FULLTEXT_CACHE_VERSION + 1
+    path.write_text(json.dumps(payload))
+
+    assert pubmed_lookup.read_fulltext_cache("1", cache_dir=tmp_path) is None
+
+
+def test_read_full_text_cache_returns_none_when_absent(tmp_path):
+    assert pubmed_lookup.read_fulltext_cache("404", cache_dir=tmp_path) is None

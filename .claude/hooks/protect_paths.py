@@ -124,14 +124,22 @@ def path_args(argv: list[str]) -> list[str]:
     return [token for token in argv[1:] if not token.startswith("-")]
 
 
+# check_gold.py flags that write into data/gold/. Both are human-invoked:
+# --promote moves a draft in, --refresh-quotes --write edits records in place.
+HUMAN_ONLY_FLAGS = ("--promote", "--refresh-quotes")
+
+
 def check_promote(command: str) -> None:
-    """`--promote` writes into data/gold/ and is the human's to run."""
-    if "check_gold" in command and re.search(r"(?:^|\s)--promote(?:\s|=|$)", command):
-        block(
-            "this command runs check_gold.py --promote, which writes into "
-            "data/gold/. That is a human-invoked step. Hand the exact command "
-            "back to the human instead of running it."
-        )
+    """check_gold.py's writing modes are the human's to run."""
+    if "check_gold" not in command:
+        return
+    for flag in HUMAN_ONLY_FLAGS:
+        if re.search(rf"(?:^|\s){re.escape(flag)}(?:\s|=|$)", command):
+            block(
+                f"this command runs check_gold.py {flag}, which writes into "
+                "data/gold/. That is a human-invoked step. Hand the exact command "
+                "back to the human instead of running it."
+            )
 
 
 def check_redirections(command: str) -> None:

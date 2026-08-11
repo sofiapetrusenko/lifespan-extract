@@ -12,13 +12,13 @@
       "experiment_id": "strong2016-mmusculus-17-alpha-estradiol",
       "organism": {
         "value": "M. musculus",
-        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "source_quote": "UM‐HET3 mice were produced at each of the three test sites as previously described in detail",
         "confidence": "high",
         "extracted_from": "full_text"
       },
       "strain": {
         "value": "UM-HET3 (genetically heterogeneous)",
-        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "source_quote": "UM‐HET3 mice were produced at each of the three test sites as previously described in detail",
         "confidence": "high",
         "extracted_from": "full_text"
       },
@@ -37,7 +37,7 @@
       "intervention": {
         "type": {
           "value": "pharmacological",
-          "source_quote": "17-a-estradiol (17aE2) is an optical isomer of 17-b-estradiol with reduced affinity for estrogen receptors.",
+          "source_quote": "17‐α‐estradiol (17aE2) is an optical isomer of 17‐β‐estradiol with reduced affinity for estrogen receptors.",
           "confidence": "high",
           "extracted_from": "full_text"
         },
@@ -104,13 +104,13 @@
       "experiment_id": "strong2016-mmusculus-ndga",
       "organism": {
         "value": "M. musculus",
-        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "source_quote": "UM‐HET3 mice were produced at each of the three test sites as previously described in detail",
         "confidence": "high",
         "extracted_from": "full_text"
       },
       "strain": {
         "value": "UM-HET3 (genetically heterogeneous)",
-        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "source_quote": "UM‐HET3 mice were produced at each of the three test sites as previously described in detail",
         "confidence": "high",
         "extracted_from": "full_text"
       },
@@ -196,13 +196,13 @@
       "experiment_id": "strong2016-mmusculus-protandim",
       "organism": {
         "value": "M. musculus",
-        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "source_quote": "UM‐HET3 mice were produced at each of the three test sites as previously described in detail",
         "confidence": "high",
         "extracted_from": "full_text"
       },
       "strain": {
         "value": "UM-HET3 (genetically heterogeneous)",
-        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "source_quote": "UM‐HET3 mice were produced at each of the three test sites as previously described in detail",
         "confidence": "high",
         "extracted_from": "full_text"
       },
@@ -221,13 +221,13 @@
       "intervention": {
         "type": {
           "value": "pharmacological",
-          "source_quote": "Protandim (Prot) is a mixture of five botanical extracts, including bacosides, silymarin, withaferin A, epigallocatechin-3-gallate, and curcumin.",
+          "source_quote": "Protandim (Prot) is a mixture of five botanical extracts, including bacosides, silymarin, withaferin A, epigallocatechin‐3‐gallate, and curcumin.",
           "confidence": "medium",
           "extracted_from": "full_text"
         },
         "agent": {
           "value": "Protandim",
-          "source_quote": "Protandim (Prot) is a mixture of five botanical extracts, including bacosides, silymarin, withaferin A, epigallocatechin-3-gallate, and curcumin.",
+          "source_quote": "Protandim (Prot) is a mixture of five botanical extracts, including bacosides, silymarin, withaferin A, epigallocatechin‐3‐gallate, and curcumin.",
           "confidence": "high",
           "extracted_from": "full_text"
         },
@@ -288,13 +288,13 @@
       "experiment_id": "strong2016-mmusculus-acarbose-male",
       "organism": {
         "value": "M. musculus",
-        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "source_quote": "UM‐HET3 mice were produced at each of the three test sites as previously described in detail",
         "confidence": "high",
         "extracted_from": "full_text"
       },
       "strain": {
         "value": "UM-HET3 (genetically heterogeneous)",
-        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "source_quote": "UM‐HET3 mice were produced at each of the three test sites as previously described in detail",
         "confidence": "high",
         "extracted_from": "full_text"
       },
@@ -313,7 +313,7 @@
       "intervention": {
         "type": {
           "value": "pharmacological",
-          "source_quote": "Acarbose (ACA) is an inhibitor of intestinal a-glucosidase.",
+          "source_quote": "Acarbose (ACA) is an inhibitor of intestinal α‐glucosidase.",
           "confidence": "high",
           "extracted_from": "full_text"
         },
@@ -338,7 +338,7 @@
       },
       "mechanism": {
         "value": "alpha-glucosidase inhibition",
-        "source_quote": "Acarbose (ACA) is an inhibitor of intestinal a-glucosidase. It inhibits digestion of polysaccharides and attenuates the uptake of sugars from the GI tract.",
+        "source_quote": "Acarbose (ACA) is an inhibitor of intestinal α‐glucosidase. It inhibits digestion of polysaccharides and attenuates the uptake of sugars from the GI tract.",
         "confidence": "high",
         "extracted_from": "full_text"
       },
@@ -380,13 +380,13 @@
       "experiment_id": "strong2016-mmusculus-acarbose-female",
       "organism": {
         "value": "M. musculus",
-        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "source_quote": "UM‐HET3 mice were produced at each of the three test sites as previously described in detail",
         "confidence": "high",
         "extracted_from": "full_text"
       },
       "strain": {
         "value": "UM-HET3 (genetically heterogeneous)",
-        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "source_quote": "UM‐HET3 mice were produced at each of the three test sites as previously described in detail",
         "confidence": "high",
         "extracted_from": "full_text"
       },
@@ -405,7 +405,7 @@
       "intervention": {
         "type": {
           "value": "pharmacological",
-          "source_quote": "Acarbose (ACA) is an inhibitor of intestinal a-glucosidase.",
+          "source_quote": "Acarbose (ACA) is an inhibitor of intestinal α‐glucosidase.",
           "confidence": "high",
           "extracted_from": "full_text"
         },
@@ -430,7 +430,7 @@
       },
       "mechanism": {
         "value": "alpha-glucosidase inhibition",
-        "source_quote": "Acarbose (ACA) is an inhibitor of intestinal a-glucosidase. It inhibits digestion of polysaccharides and attenuates the uptake of sugars from the GI tract.",
+        "source_quote": "Acarbose (ACA) is an inhibitor of intestinal α‐glucosidase. It inhibits digestion of polysaccharides and attenuates the uptake of sugars from the GI tract.",
         "confidence": "high",
         "extracted_from": "full_text"
       },
@@ -472,13 +472,13 @@
       "experiment_id": "strong2016-mmusculus-metformin-rapamycin",
       "organism": {
         "value": "M. musculus",
-        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "source_quote": "UM‐HET3 mice were produced at each of the three test sites as previously described in detail",
         "confidence": "high",
         "extracted_from": "full_text"
       },
       "strain": {
         "value": "UM-HET3 (genetically heterogeneous)",
-        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "source_quote": "UM‐HET3 mice were produced at each of the three test sites as previously described in detail",
         "confidence": "high",
         "extracted_from": "full_text"
       },
@@ -564,13 +564,13 @@
       "experiment_id": "strong2016-mmusculus-metformin",
       "organism": {
         "value": "M. musculus",
-        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "source_quote": "UM‐HET3 mice were produced at each of the three test sites as previously described in detail",
         "confidence": "high",
         "extracted_from": "full_text"
       },
       "strain": {
         "value": "UM-HET3 (genetically heterogeneous)",
-        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "source_quote": "UM‐HET3 mice were produced at each of the three test sites as previously described in detail",
         "confidence": "high",
         "extracted_from": "full_text"
       },
@@ -589,7 +589,7 @@
       "intervention": {
         "type": {
           "value": "pharmacological",
-          "source_quote": "Metformin (Met) is an oral antidiabetic drug that has been FDA-approved for the treatment of type 2 diabetes",
+          "source_quote": "Metformin (Met) is an oral antidiabetic drug that has been FDA‐approved for the treatment of type 2 diabetes",
           "confidence": "high",
           "extracted_from": "full_text"
         },
@@ -656,13 +656,13 @@
       "experiment_id": "strong2016-mmusculus-fish-oil",
       "organism": {
         "value": "M. musculus",
-        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "source_quote": "UM‐HET3 mice were produced at each of the three test sites as previously described in detail",
         "confidence": "high",
         "extracted_from": "full_text"
       },
       "strain": {
         "value": "UM-HET3 (genetically heterogeneous)",
-        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "source_quote": "UM‐HET3 mice were produced at each of the three test sites as previously described in detail",
         "confidence": "high",
         "extracted_from": "full_text"
       },
@@ -681,7 +681,7 @@
       "intervention": {
         "type": {
           "value": "dietary",
-          "source_quote": "Microencapsulated fish oil (containing DHA, minimum 132 mg/g of powder; and EPA plus DHA, minimum 168 mg kg-1 of powder) was purchased from Ocean Nutrition Canada",
+          "source_quote": "Microencapsulated fish oil (containing DHA, minimum 132 mg/g of powder; and EPA plus DHA, minimum 168 mg kg−1 of powder) was purchased from Ocean Nutrition Canada",
           "confidence": "medium",
           "extracted_from": "full_text"
         },
@@ -748,13 +748,13 @@
       "experiment_id": "strong2016-mmusculus-udca",
       "organism": {
         "value": "M. musculus",
-        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "source_quote": "UM‐HET3 mice were produced at each of the three test sites as previously described in detail",
         "confidence": "high",
         "extracted_from": "full_text"
       },
       "strain": {
         "value": "UM-HET3 (genetically heterogeneous)",
-        "source_quote": "UM-HET3 mice were produced at each of the three test sites as previously described in detail",
+        "source_quote": "UM‐HET3 mice were produced at each of the three test sites as previously described in detail",
         "confidence": "high",
         "extracted_from": "full_text"
       },
