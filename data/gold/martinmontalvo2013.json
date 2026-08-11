@@ -93,7 +93,7 @@
         },
         "p_value": {
           "value": "0.02",
-          "source_quote": "chi2 = 5.46 and p = 0.02 in Gehan-Breslow survival test",
+          "source_quote": "χ2 = 5.46 and p= 0.02 in Gehan-Breslow survival test",
           "confidence": "high",
           "extracted_from": "full_text"
         }
@@ -185,7 +185,7 @@
         },
         "p_value": {
           "value": "< 0.001",
-          "source_quote": "chi2 = 51.70 and P < 0.001 in Gehan-Breslow survival test",
+          "source_quote": "χ2 = 51,70 and P< 0.001 in Gehan-Breslow survival test",
           "confidence": "high",
           "extracted_from": "full_text"
         }
