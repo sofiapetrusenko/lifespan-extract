@@ -1,18 +1,18 @@
 {
   "schema_version": "0.3.0",
   "paper": {
-    "doi": "10.1038/366461a0",
-    "title": "A C. elegans mutant that lives twice as long as wild type",
-    "year": 1993,
+    "doi": "10.1126/science.1173635",
+    "title": "Caloric restriction delays disease onset and mortality in rhesus monkeys.",
+    "year": 2009,
     "source": "pubmed",
-    "pmid": "8247153"
+    "pmid": "19590001"
   },
   "experiments": [
     {
-      "experiment_id": "kenyon1993-celegans-daf-2",
+      "experiment_id": "colman2009-mmulatta-caloric-restriction",
       "organism": {
-        "value": "C. elegans",
-        "source_quote": "We have found that mutations in the gene daf-2 can cause fertile, active, adult Caenorhabditis elegans hermaphrodites to live more than twice as long as wild type.",
+        "value": "M. mulatta",
+        "source_quote": "In a population of rhesus macaques maintained at the Wisconsin National Primate Research Center, moderate CR lowered the incidence of aging-related deaths.",
         "confidence": "high",
         "extracted_from": "abstract"
       },
@@ -23,8 +23,8 @@
         "extracted_from": "abstract"
       },
       "sex": {
-        "value": "hermaphrodite",
-        "source_quote": "We have found that mutations in the gene daf-2 can cause fertile, active, adult Caenorhabditis elegans hermaphrodites to live more than twice as long as wild type.",
+        "value": "not_reported",
+        "source_quote": null,
         "confidence": "high",
         "extracted_from": "abstract"
       },
@@ -36,14 +36,14 @@
       },
       "intervention": {
         "type": {
-          "value": "genetic",
-          "source_quote": "We have found that mutations in the gene daf-2 can cause fertile, active, adult Caenorhabditis elegans hermaphrodites to live more than twice as long as wild type.",
+          "value": "dietary",
+          "source_quote": "In a population of rhesus macaques maintained at the Wisconsin National Primate Research Center, moderate CR lowered the incidence of aging-related deaths.",
           "confidence": "high",
           "extracted_from": "abstract"
         },
         "agent": {
-          "value": "daf-2 mutation",
-          "source_quote": "We have found that mutations in the gene daf-2 can cause fertile, active, adult Caenorhabditis elegans hermaphrodites to live more than twice as long as wild type.",
+          "value": "caloric restriction",
+          "source_quote": "In a population of rhesus macaques maintained at the Wisconsin National Primate Research Center, moderate CR lowered the incidence of aging-related deaths.",
           "confidence": "high",
           "extracted_from": "abstract"
         },
@@ -69,8 +69,8 @@
       "lifespan_effect": {
         "direction": {
           "value": "increase",
-          "source_quote": "We have found that mutations in the gene daf-2 can cause fertile, active, adult Caenorhabditis elegans hermaphrodites to live more than twice as long as wild type.",
-          "confidence": "high",
+          "source_quote": "In a population of rhesus macaques maintained at the Wisconsin National Primate Research Center, moderate CR lowered the incidence of aging-related deaths.",
+          "confidence": "medium",
           "extracted_from": "abstract"
         },
         "median_change_pct": {
@@ -98,7 +98,7 @@
           "extracted_from": "abstract"
         }
       },
-      "notes": "Abstract-only labeling: full text paywalled (Nature 1993). Effect magnitude reported as 'more than twice as long' (>100%) but the statistic (median/mean/max) is not specified in the abstract, so all _change_pct fields are null per the mean-vs-median guideline. daf-2 allele not named in abstract. The extension requires daf-16 activity (epistasis), recorded here rather than as mechanism because the abstract states a genetic requirement, not a mechanism of action. Both genes also regulate dauer larva formation."
+      "notes": "The abstract reports no lifespan statistic, so median, mean, max and p_value are all null. Its only survival figure is a proportion alive at the time point reported — 50% of control fed animals surviving as compared with 80% of the CR animals — stated in the context of aging-related deaths. That is not a change in lifespan, and no percentage change is derived from it anywhere in this record. Secondary outcomes reported: CR reduced the incidence of diabetes, cancer, cardiovascular disease, and brain atrophy. Dose and age at onset are given only as \"moderate\" and \"adult-onset\", with no numbers. WNPRC is a colony, not a strain."
     }
   ]
 }
