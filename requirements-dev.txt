@@ -7,6 +7,7 @@
 ruff
 pytest
 
-# 4.18 is the floor: earlier releases mishandle draft 2020-12 unevaluatedProperties,
-# which every claim wrapper in schema/experiment.schema.json relies on.
-jsonschema>=4.18
+# jsonschema moved to requirements.txt in Phase 2: the extractor validates every
+# record it produces, so it is a runtime dependency now, not a checking-tool one.
+# The 4.18 floor is unchanged — earlier releases mishandle draft 2020-12
+# unevaluatedProperties, which every claim wrapper in the schema relies on.

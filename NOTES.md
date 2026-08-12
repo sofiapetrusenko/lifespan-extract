@@ -613,3 +613,24 @@ mismatch. A model given full text where the label was made from the
 abstract alone would be penalized for correctly extracting fields the
 labeler honestly marked not_reported, and the reverse would credit it for
 absences it had no chance to fill.
+
+---
+
+## 2026-08-12 — `experiment_id` generation does not reproduce the gold ids (open question for Phase 3)
+
+Found in review of Phase 2. `extract/extract.py::_experiment_id` follows the convention `schema/experiment.schema.json` writes down — `<first-author-year>-<organism-slug>-<agent-slug>[-<n>]` — and **reproduces 11 of the gold set's 26 `experiment_id`s.** The other 15 differ, from two systematic causes:
+
+1. **Disambiguation is semantic by hand, numeric by code.** Where one paper reports the same (organism, agent) pair more than once, the labeller wrote `-male` / `-female` (harrison2009, miller2011, strong2016 acarbose, calubag2025) or `-low-dose` / `-high-dose` (martinmontalvo2013). The generator has only the schema's `-2`, `-3`, and nothing in the payload tells it which axis split the arms. **No gold record uses a numeric suffix.**
+2. **Agent names are hand-normalised by the labeller.** `nordihydroguaiaretic acid (NDGA)` is `ndga` in gold and `nordihydroguaiaretic-acid-ndga` generated; `ursodeoxycholic acid (UDCA)` likewise; `eat-2 mutation (reference allele ad465)` is `eat-2`; `metformin + rapamycin` is `metformin-rapamycin` by hand and `metformin-plus-rapamycin` by slug.
+
+The schema calls `experiment_id` a stable identity "for eval alignment" and says Phase 2 generates it "from the same convention". Both halves of that sentence cannot currently be true, and **this is a schema/gold-set inconsistency, not only a code bug** — the code does what the schema documents.
+
+**Not decided here.** Choosing between semantic and numeric disambiguation, and whether agent names get normalised before slugging, changes what Phase 3 can align on and is the human's call. Nothing was changed in the generator.
+
+Pinned instead of drifting: `tests/test_extract.py::KNOWN_ID_DIVERGENCES` lists all 15 divergent pairs, and `test_generated_ids_match_gold_except_where_pinned` parametrizes over the real `data/gold/*.json` and asserts the set exactly. A new divergence fails; so does one that quietly disappears.
+
+### What Phase 3 must do
+
+Either the convention is settled first, or **the eval aligns gold to extracted output on `(organism, agent)`, not on `experiment_id`.** Aligning on the id as it stands would score 15 of 26 gold records as unmatched — a measurement of a naming mismatch, reported as an extraction failure.
+
+Two things to decide if the convention is settled instead: whether the split axis (`sex`, `dose`) can be read off the extracted record reliably enough to name an id from it, and whether normalising agent names for the id also means normalising `intervention.agent.value`, which `GET /interventions/{agent}` aggregates on.

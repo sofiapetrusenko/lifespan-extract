@@ -19,3 +19,20 @@ psycopg[binary]>=3.1
 # abstracts. Used instead of stdlib ElementTree because the payload is remote
 # input and ElementTree expands entity bombs.
 defusedxml>=0.7
+
+# Anthropic API client for the Phase 2 classify/extract cascade. The official
+# SDK, so structured output (output_config.format) is a typed parameter rather
+# than a hand-rolled request body.
+#
+# 0.77 is the floor because `output_config` is what extract/model.py sends:
+# anthropic/types/output_config_param.py first appears in 0.77.0, and every
+# earlier release rejects the parameter, so an install resolving below it fails
+# on its first real call. Every test stubs messages.create, so the suite cannot
+# catch this — the floor is the only thing that does.
+anthropic>=0.77
+
+# JSON Schema validation. Runtime, not dev-only, since Phase 2: every extracted
+# record is validated against schema/experiment.schema.json before it is
+# written, because model output is untrusted input. scripts/validate_gold.py
+# uses the same library.
+jsonschema>=4.18
