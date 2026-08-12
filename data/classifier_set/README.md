@@ -43,6 +43,46 @@ probes is a different one:
   from **describing** one.
 - `wrong-organism` asks whether it reads "lifespan" **in context**.
 
+## Metrics
+
+**The headline is aggregate precision and recall over all 25 papers** — 10
+positives from `data/gold/`, 15 negatives from here.
+
+The per-category breakdown is reported **alongside, as diagnostics only**. With
+n=3 per category, a per-category rate is not a measurement: one entry moving
+swings it by 33 points, and quoting "67% on reviews" would give a number that
+looks like a metric and carries the precision of a coin flip. What the breakdown
+is for is naming *which* boundary the classifier failed to hold — a run that
+misses all three reviews and nothing else is a different problem from one that
+misses three scattered entries, and only the breakdown distinguishes them.
+
+**The 15:10 ratio stands, and is not rebalanced.** Precision and recall are
+properties of a threshold and its errors, not of set composition. The set is
+what the search found when the criterion was "hard", and adjusting the ratio to
+make the resulting number look better would be tuning the measuring instrument
+rather than the thing being measured.
+
+## Limitations
+
+**The positives are the extraction gold set.** The same 10 papers serve as the
+classifier's positive class and as the ground truth for per-field extraction
+accuracy, so the two sets of Phase 3 numbers are computed over a shared sample
+and are not independent evidence about the pipeline.
+
+**The classifier prompt will be iterated against the set it is scored on.**
+There is no held-out split. Every prompt revision is chosen partly by how it
+scores here, which means the reported precision and recall are optimistic by an
+unknown amount — the same overfitting exposure the Phase 3 prompt loop carries
+for extraction, in a second place. Closing it needs papers this project has not
+labelled, which is a Phase 3 decision and not a fix that can be applied to this
+file.
+
+**A paper listed twice under different identifiers is not detected.** Duplicate
+detection keys on whichever of `pmid`/`doi` an entry uses, so the same work
+entered once by PMID and once by DOI would pass. Nothing in the file records the
+mapping between the two. Matters only if preprint negatives are added alongside
+their published versions.
+
 ## These are not gold records
 
 No experiment is extracted, no schema record exists, and nothing here is ever

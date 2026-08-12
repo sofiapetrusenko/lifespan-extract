@@ -552,3 +552,27 @@ Each entry carries `"reviewed": false`. The validator prints the unreviewed coun
 `--resolve` checks every PMID against PubMed and confirms the stored title still matches. It is opt-in and stays out of CI: an identifier valid when added does not stop being valid, and CI that fails because NCBI is having an outage teaches people to ignore CI — the elink outage earlier today being the local precedent.
 
 One known limit, pinned by a test so it is a decision rather than a surprise: duplicate detection keys on whichever identifier an entry uses, so the same paper listed once by PMID and once by DOI would pass. Nothing in the file records the mapping between the two. It matters if preprint negatives are ever added alongside their published versions — the same gap as the ingest dedup limitation, in a smaller place.
+
+---
+
+## 2026-08-11 — eval design for the classifier set: ratio, headline metric, and a shared sample
+
+Decided when the negative set was approved at 15 entries against the gold set's 10 positives. Recorded because each of these is a choice that would otherwise look like an accident of how many candidates a search happened to return.
+
+### The 15:10 ratio stands
+
+Not rebalanced to 1:1, and not padded in either direction. **Precision and recall are properties of a threshold and its errors, not of set composition.** The negatives are what the search found under the criterion "hard enough that a keyword classifier would plausibly call it positive"; adjusting the count afterwards to make the resulting number rounder would be tuning the measuring instrument rather than the thing being measured. If the ratio is wrong for some downstream purpose, the honest fix is to say what the purpose is and compute a different statistic from the same set, not to reshape the set until one statistic behaves.
+
+### Aggregate is the headline; per-category is diagnostics
+
+The README quotes **aggregate precision and recall over all 25 papers**. The per-category breakdown is reported alongside and is explicitly *not* quoted as a metric.
+
+The reason is n=3. A per-category rate moves 33 points when one entry changes, so "67% on reviews" would read as a measurement and carry the resolution of a coin flip. What three-per-category is actually good for is *localisation*: a run that misses all three reviews and nothing else is a different failure from one that misses three scattered entries, and the aggregate cannot tell those apart while the breakdown can. That is why the categories exist and why they are equally sized — one boundary each, enough entries to notice a pattern, not enough to quote a rate.
+
+### Known limitation: the positives and the extraction gold set are the same papers
+
+The 10 papers in `data/gold/` are simultaneously the classifier's positive class and the ground truth for per-field extraction accuracy. So the two headline Phase 3 numbers — classifier precision/recall, and per-field extraction accuracy — are computed over a **shared sample** and are not independent evidence about the pipeline. A gold set that happens to be easy to classify inflates the first while telling you nothing new about the second.
+
+Worse, and the part worth stating plainly: **there is no held-out split, so the classifier prompt will be iterated against the set it is scored on.** Every revision is chosen partly by how it scores here. The reported precision and recall are therefore optimistic by an unknown amount. This is the same exposure the Phase 3 extraction prompt loop already carries, appearing a second time in a second place, and it is not fixable by editing this file — closing it needs papers this project has not labelled, which is a Phase 3 scoping decision.
+
+Recorded in the `Limitations` section of `data/classifier_set/README.md` as well as here, because a limitation that lives only in a design log is one nobody reads at the moment they are quoting the number.
