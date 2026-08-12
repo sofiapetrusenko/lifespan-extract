@@ -48,6 +48,10 @@
 - **Preprints and DOIs**: bioRxiv assigns DOIs under the `10.1101/...` prefix, so a preprint is never DOI-less. `paper.doi` stays required. Covered by a validation case.
 - **Per-experiment identity**: settled by decision 9 above.
 
+### Superseded — added 2026-08-11
+
+- **Decision 6's `organism` enum is out of date. Do not act on it as written.** It records `C. elegans|M. musculus|other`, with `other` carrying the macaque papers. `M. mulatta` became a first-class member in v0.3.0, so the enum is now `C. elegans|M. musculus|M. mulatta|other`, and v0.4.0 added `experiments[].species` beside it for organisms still outside the enum. Decision 6 is left as written because it records what was decided on 2026-08-08 and why; the current state is in the v0.3.0 entry (*rhesus macaque in scope*) and the v0.4.0 entry (*`species`, and why `organism` was not extended*). The rest of decision 6 — `sex`, `direction`, `intervention.type`, `extracted_from` — is unchanged.
+
 ---
 
 ## 2026-08-08 — schema v0.2.0
@@ -593,3 +597,19 @@ Procedure: re-answer the labeling questions for each paper from the same
 source the original label used (per its extracted_from field), without
 consulting the existing JSON. Compare field-by-field afterwards. Disagreements
 are reported as-is; the original label is not silently corrected to match.
+
+---
+
+## 2026-08-11 — Eval design: like-for-like source matching
+
+At eval time the model receives the same source the human labeler used for
+each gold file, determined per-file by that file's extracted_from values:
+abstract-only labels are scored against a model given the abstract alone,
+full_text labels against the model given PMC full text, preprints against
+the bioRxiv text.
+
+Rationale: the eval measures extraction quality, not source-availability
+mismatch. A model given full text where the label was made from the
+abstract alone would be penalized for correctly extracting fields the
+labeler honestly marked not_reported, and the reverse would credit it for
+absences it had no chance to fill.
