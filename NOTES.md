@@ -576,3 +576,20 @@ The 10 papers in `data/gold/` are simultaneously the classifier's positive class
 Worse, and the part worth stating plainly: **there is no held-out split, so the classifier prompt will be iterated against the set it is scored on.** Every revision is chosen partly by how it scores here. The reported precision and recall are therefore optimistic by an unknown amount. This is the same exposure the Phase 3 extraction prompt loop already carries, appearing a second time in a second place, and it is not fixable by editing this file — closing it needs papers this project has not labelled, which is a Phase 3 scoping decision.
 
 Recorded in the `Limitations` section of `data/classifier_set/README.md` as well as here, because a limitation that lives only in a design log is one nobody reads at the moment they are quoting the number.
+
+---
+
+## 2026-08-11 — Blind re-label targets selected
+
+Three gold papers were selected at random for a blind re-label on 2026-08-18,
+to measure single-labeler self-agreement for the README:
+mattison2012, calubag2025, martinmontalvo2013.
+
+Selection method: `ls data/gold/*.json | sort -R | head -3`, run once on
+2026-08-11, first result taken. Recorded before the re-label so the targets
+cannot be chosen after the fact.
+
+Procedure: re-answer the labeling questions for each paper from the same
+source the original label used (per its extracted_from field), without
+consulting the existing JSON. Compare field-by-field afterwards. Disagreements
+are reported as-is; the original label is not silently corrected to match.
