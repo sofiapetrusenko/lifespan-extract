@@ -19,6 +19,9 @@ web/           Next.js dashboard: filterable table, intervention pages, CSV expo
 schema/        JSON Schema for experiment records (source of truth)
 data/gold/     hand-labeled gold set — human-controlled (see working agreements)
 data/drafts/   in-progress labels, gitignored; promoted into data/gold/ by hand
+data/extracted/
+               pipeline output, gitignored; one file per paper, written by
+               `python -m extract` into <schema-version>/ — Phase 3's eval input
 ```
 
 **Stack:** Python 3.11, FastAPI, SQLModel, PostgreSQL; Next.js + TypeScript; pytest; GitHub Actions.

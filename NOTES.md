@@ -620,8 +620,8 @@ absences it had no chance to fill.
 
 Found in review of Phase 2. `extract/extract.py::_experiment_id` follows the convention `schema/experiment.schema.json` writes down — `<first-author-year>-<organism-slug>-<agent-slug>[-<n>]` — and **reproduces 11 of the gold set's 26 `experiment_id`s.** The other 15 differ, from two systematic causes:
 
-1. **Disambiguation is semantic by hand, numeric by code.** Where one paper reports the same (organism, agent) pair more than once, the labeller wrote `-male` / `-female` (harrison2009, miller2011, strong2016 acarbose, calubag2025) or `-low-dose` / `-high-dose` (martinmontalvo2013). The generator has only the schema's `-2`, `-3`, and nothing in the payload tells it which axis split the arms. **No gold record uses a numeric suffix.**
-2. **Agent names are hand-normalised by the labeller.** `nordihydroguaiaretic acid (NDGA)` is `ndga` in gold and `nordihydroguaiaretic-acid-ndga` generated; `ursodeoxycholic acid (UDCA)` likewise; `eat-2 mutation (reference allele ad465)` is `eat-2`; `metformin + rapamycin` is `metformin-rapamycin` by hand and `metformin-plus-rapamycin` by slug.
+1. **Disambiguation is semantic by hand, numeric by code.** Where one paper reports the same (organism, agent) pair more than once, the labeller wrote `-male` / `-female` (harrison2009, miller2011, strong2016 acarbose, calubag2025) or `-low-dose` / `-high-dose` (martinmontalvo2013). The generator has only the schema's `-2`, `-3`, and nothing in the payload tells it which axis split the arms. **No gold record uses a numeric disambiguation suffix** — the `-2` in `kenyon1993-celegans-daf-2` and `lakowski1998-celegans-eat-2` is part of the gene name, not a tail distinguishing two arms of one paper.
+2. **Agent names are hand-normalised by the labeller.** `nordihydroguaiaretic acid (NDGA)` is `ndga` in gold and `nordihydroguaiaretic-acid-ndga` generated; `ursodeoxycholic acid (UDCA)` likewise; `eat-2 mutation (reference allele ad465)` is `eat-2`; `metformin plus rapamycin` is `metformin-rapamycin` by hand and `metformin-plus-rapamycin` by slug.
 
 The schema calls `experiment_id` a stable identity "for eval alignment" and says Phase 2 generates it "from the same convention". Both halves of that sentence cannot currently be true, and **this is a schema/gold-set inconsistency, not only a code bug** — the code does what the schema documents.
 
@@ -631,6 +631,218 @@ Pinned instead of drifting: `tests/test_extract.py::KNOWN_ID_DIVERGENCES` lists 
 
 ### What Phase 3 must do
 
-Either the convention is settled first, or **the eval aligns gold to extracted output on `(organism, agent)`, not on `experiment_id`.** Aligning on the id as it stands would score 15 of 26 gold records as unmatched — a measurement of a naming mismatch, reported as an extraction failure.
+Aligning on `experiment_id` as it stands would score 15 of 26 gold records as unmatched — a measurement of a naming mismatch, reported as an extraction failure. That half of the problem is real and unchanged.
 
-Two things to decide if the convention is settled instead: whether the split axis (`sex`, `dose`) can be read off the extracted record reliably enough to name an id from it, and whether normalising agent names for the id also means normalising `intervention.agent.value`, which `GET /interventions/{agent}` aggregates on.
+**The fallback this entry originally recommended — align on `(organism, agent)` instead of `experiment_id` — does not survive the paper's own facts, and is withdrawn.** Cause 1 above says outright that some papers report the same (organism, agent) pair more than once; the recommendation that followed it did not carry that forward. The pair is not unique within a paper, so it cannot key a 1:1 matcher.
+
+Counted against `data/gold/` rather than off the list above, because the list is incomplete: **12 of the 26 records, in 6 within-paper groups, share an (organism, agent) pair with a sibling.** Five groups are the ones cause 1 names — harrison2009, miller2011, martinmontalvo2013, strong2016 (acarbose) and calubag2025. The sixth is eisenberg2009, and it is missing from that list because it is not two arms of one intervention. That paper has three records — worm, yeast and fly, all spermidine — and the worm one is distinct because `C. elegans` is in the MVP enum. The other two are not: `organism` is a closed enum, so both the yeast and the fly record read `other`, and both agents read `spermidine`. `species` is the only field that separates them, and `(organism, agent)` does not read it. A Phase 3 matcher built on the withdrawn sentence would collapse those 12 records into 6. That is the mirror image of the id problem, and the worse half of it: aligning on a divergent id reports a naming mismatch as a missed extraction, which is at least visible in the numbers; collapsing two experiments into one scores them as a match and reports nothing amiss.
+
+**No replacement key is proposed here. The eval alignment key is an open Phase 3 question and is reserved to the human**, alongside the `experiment_id` convention itself. The two are one decision seen twice: choosing what aligns gold to extracted output is choosing what identifies an experiment.
+
+Two things to decide when the convention is settled: whether the split axis (`sex`, `dose`) can be read off the extracted record reliably enough to name an id from it, and whether normalising agent names for the id also means normalising `intervention.agent.value`, which `GET /interventions/{agent}` aggregates on.
+
+---
+
+## 2026-08-12 — Test honesty
+
+**Seven cases in this repo have now been found decorative** — green, plausible, and unable to fail for the reason their name gives. Written down before Phase 3 rather than after it, because the eval harness will be guarded by tests of exactly this kind and its numbers are the ones the README quotes.
+
+The seven are numbered below and the numbering runs 1 to 7 unbroken: 1–3 were found one per round in iterations 3a, 4a and 5b, and 4–7 all in iteration 6a. They are not all the same thing, and the difference matters when reading the list. **Four are tests that exist, name the right function, and still cannot go red for the reason their name gives** — 1, 3, 4 and 5. Two of those four assert the wrong thing (1 pins the defective output as expected; 5 pins the wiring and says nothing about the constant) and two have fine assertions over a fixture that cannot reach the case (3, 4) — which is the second rule below, and why the two groups are not worth separating further. **Three are coverage that is simply absent** — 2, 6 and 7, where a sixty-four-entry table or a whole branch could be deleted with the suite green and no assertion anywhere to notice. From outside the two shapes are indistinguishable: the function is named, the path is walked, and nothing is watching.
+
+This section was first written at three, in iteration 5, and the lead sentence went on saying three after iteration 6a added four more — a count contradicted four paragraphs down by this document's own "Cases 4 to 7" heading. Corrected here rather than quietly re-worded, because that is the failure this section is about, one level up: a number that was true when written and was never re-derived.
+
+**1. `test_non_ascii_agents_still_produce_a_valid_identifier` (found iteration 3a).** It asserted `strong2016-mmusculus-17-estradiol` as the expected value — the *defective* output, with the Greek letter deleted. So it read as coverage of the non-ASCII path while pinning the bug in place. Found when a reviewer asked why the defect had survived three passes and noticed that every `intervention.agent.value` in `data/gold/` is already hand-normalised to ASCII: the gold-parametrized id test never feeds the generator a non-ASCII string at all, so nothing else was watching that path either.
+
+**2. Thirty-nine of the transliteration table's sixty-four entries (found iteration 4a).** Not a wrong assertion — absent coverage. A reviewer deleted all 8 Latin entries and the entire 31-entry uppercase-Greek derivation, and the full 656-test suite still passed. Same family, same round: the iteration-4 implementer's own first draft of the replacement test checked only `_ID_PATTERN`, which the *broken* output also satisfies, and caught that itself by mutation before shipping.
+
+**3. `test_the_limit_counts_attempts_not_rows` (found iteration 5b).** Its fixture stored three papers that all had abstracts and none of which were already extracted, so the two things in the test's name were the same number. Inverting the `--limit` contract outright — making both skip branches consume the limit — left all 917 tests green.
+
+And the near-miss behind the fourth of these rounds: the boundary rule that stops a character with no ASCII reading being trimmed off the end of a slug was pinned on `_slug` and not on `_binomial_slug`, its other call site. Reinstating the iteration-4 full strip there left all 917 tests passing — no test referenced `_binomial_slug`, `_organism_identity` or `_split` at all.
+
+**The rule: a test asserting the current output of a function is not coverage of that function's contract.** It is a change detector. That is worth having, but it reports only that today's behaviour is today's behaviour, and it reports it just as confidently when today's behaviour is wrong.
+
+What cases 1 to 3 have in common is how they were written — by reading the implementation and writing down what it does, rather than reading the contract and writing down what it must never do. That is also why each looked like coverage: they name the right function and exercise the right path.
+
+Two things actually caught them, and neither is review by reading:
+
+- **Mutation.** Break the thing on purpose and watch the test go red, before shipping the test rather than after someone asks. Every case above was found this way, and case 2's near-miss was found this way by the person writing it.
+- **Deriving a test's universe from something other than the thing under test.** The transliteration coverage tests parametrize from Unicode, not from the table; the id test parametrizes over the real `data/gold/*.json`; the package export test derives its expectation from `extract.errors` rather than from a list, because a hand-written list is the same failure one level up — it can be incomplete in exactly the way the code is.
+
+One corollary, because case 1 and case 3 both turned on it: check what a fixture actually contains before believing a test covers a case. Gold agent names are hand-normalised, so the gold-parametrized test never saw a non-ASCII character; the limit fixture had no skipped papers, so it could not tell attempts from rows. The assertion was fine in both. The inputs could not reach the failure.
+
+### Cases 4 to 7, and the sweep that followed them (iteration 6)
+
+Four more, all found in one round. **4.** The windowed-excerpt tests in `tests/test_model.py` used payloads under 40 characters, and `ingest.errors.excerpt` has a 200-character radius — so `text[0:400]` and `text[pos-200:pos+200]` were the same string and both call sites' `position=` arguments could be set to `None` with all 960 tests green. The token assertion did not help: the reason string interpolates the token itself, so it passed whether or not the excerpt reached the offending region. **5.** `tests/test_classify.py` asserted `request["model"] == CLASSIFIER_MODEL`, which pins the wiring and says nothing about the constant — `CLASSIFIER_MODEL = "claude-opus-5"` left everything green and deleted PLAN.md Phase 2's cost cascade outright. **6 and 7.** Both branches of the schema's description rule — `_flatten`'s `source is not node` skip and `_inherited_description`'s body — carry comments naming the bug they prevent, and either could be deleted with the suite green. Between them they decide what the model is told each field means, which is prompt content that no validated field would ever reveal.
+
+Finding these one per round is the process this section exists to stop, so the rest of the package was swept in one pass rather than waiting for the next reviewer.
+
+**Method.** For every function in `extract/`, read the contract it claims — docstring, PLAN.md, or CLAUDE.md — then write a mutation that makes that specific claim false. Not random mutation: `_ellipsis` gets its length bound raised, `check_quotes_verbatim` gets both sides case-folded, `repair_json` gets a rule that rewrites a body it promised to leave alone. Run the full suite, record whether anything turns red. Everything ran in a scratch copy, one mutation at a time, with every source file restored from a snapshot in a `finally` between runs — a mutation left in place would quietly falsify every result after it.
+
+**Scale.** 71 function-level entries in `extract/`, counting a method-less class as one and each of the two modules that define no functions as one. 62 of them got at least one deliberate mutation, and 9 could not be given one — see "Where the sweep does not reach" below. **107 mutations in all: 93 in the sweep proper, plus 14 follow-ups run to correct or confirm one of the 93.**
+
+**16 of the 107 left all 967 tests passing**, and the two survivor counts belong to different halves of the run. 79 of the 93 sweep mutations turned red, so 14 survived the sweep proper — and those 14 are the real findings listed below. The other two survivors are follow-ups, and they were the sweep's own fault rather than findings: `pass` inserted before a `raise` is a no-op, and `except UnicodeEncodeError` widened to `except UnicodeError` still catches the same exception. Neither inverted the contract it was aimed at, so neither could have gone red. Both were re-run as proper inversions and both contracts turned out to be pinned. Worth writing down: a mutation harness earns the same suspicion as a test, and the way to audit one is a second mutation that breaks the same contract differently.
+
+**Fourteen real ones.** Twelve state their contract in a docstring, in PLAN.md, or in CLAUDE.md — written promises with nothing enforcing them — and are now covered:
+
+- `repair_json` — "a body it cannot fix comes back unchanged", checked only on `{"a": 1}`: the one input none of the three repair rules can reach, having no fence, no prose and no comma.
+- `schema_document` — "loading it once per process" had no test at all. The cache keys `validate_record`'s compiled validator by object identity, so an equal-but-fresh dict recompiles the schema once per paper.
+- `extract_record` — the quote haystack was pinned against being *narrower* than the prompt and not against being wider. A wider one verifies a quote against text the model was never shown, which is the fabrication check running backwards.
+- `load_schema` — annotated `-> dict[str, Any]`; a schema file containing a JSON array was accepted and returned.
+- `build_extraction_schema` — the "no items schema" guard. Without it a missing `items` is a bare `KeyError`, and a non-dict one is sent to the model as the request schema.
+- `check_quotes_verbatim` — "case, punctuation and unicode differences are real differences". Lowercasing both sides of the comparison passed every verbatim test in the file.
+- `_closest_window` — "anchored on the longest block the two share". Returning the top of the text, or the empty string, changed nothing.
+- `_ellipsis` — "one line, and short enough to read in a terminal". The limit could be raised to a million.
+- `_resolve_composition` — "in application order", reversible, because every wrapper in the real schema composes exactly one definition. Now pinned with a synthetic document.
+- `_is_code_assigned` — the path condition scoping `experiment_id` and `notes` to the experiment level could be deleted.
+- `_error_path` — "renders as `experiments[0].organism.value`". The bracketed index could go.
+- `build_parser` — `--limit`'s default could be changed while `--help` went on advertising the constant.
+
+**Two were left, deliberately, and are recorded rather than fixed:**
+
+- `Classification` is `frozen=True`, and nothing anywhere says a gate decision is immutable; unfreezing it changes no observable behaviour. A design choice, not a contract.
+- `extraction_schema` caches its derived schema, and unlike `schema_document`'s its docstring does not say so. Rebuilding per call is a cost regression that violates nothing written down.
+
+**Where the sweep does not reach.** Nine of the 71 entries got no mutation, and they are holes rather than clean results. `MessagesResource.create` and `ModelClient.messages` are `Protocol` stubs with `...` for a body — no behaviour to invert. `_RefusedNumber.__init__` and the four error classes that declare no methods (`ExtractError`, `OutputPathError`, `ExperimentIdCollisionError`, `RecordValidationError`) hold their contract in a base class or a message rather than in code that can be made wrong; `ConfigurationError` was mutated as the representative of "every error here is an `ExtractError`" and the rest were not. `ModelCallError` and `ModelResponseError` are not in that group and are not holes: each declares methods of its own — `from_api_error`, and `from_payload`, which builds every windowed excerpt this package emits — so both are ordinary function-level entries, mutated like any other. Making `from_payload` ignore the `position` it is handed turns tests red, and dropping the excerpt from its message turns fourteen red. **That keeps the hole count at nine, not ten.** `RunSummary` declares six counters and no methods, so what is invertible is the code that increments them. And `extract/__main__.py` is a two-line shim with no function to mutate — which surfaces something worse than a sweep gap: **no test runs `python -m extract` at all.** The entry point the whole CLI contract is written for is the one thing nothing exercises.
+
+**What the shape of the result says.** 79 of the 93 sweep mutations turned red — 91 of all 107, counting the follow-ups — and they are the ones that matter most: every honesty invariant, both loud-failure paths, the identity generator, the transliteration table, the gold-set write guard. The suite is not decorative. But the twelve real gaps have a shape. **Four** are in the reporting layer — how a window is chosen (`_closest_window`), how a path is rendered (`_error_path`), what `--help` advertises (`build_parser`), what an excerpt is built from (`_ellipsis`). Two are guards that raise on a malformed schema (`load_schema`, `build_extraction_schema`). Two are comparison semantics (`check_quotes_verbatim`, and `extract_record`'s haystack). Two are unobservable against the real schema file and needed a synthetic document to reach (`_resolve_composition`, `_is_code_assigned`). One is a cache (`schema_document`).
+
+**That is eleven, and the twelfth fits none of the five buckets: `repair_json`.** It is not reporting, not a guard, not a comparison, not a cache, and it is entirely observable against real input. It is the untrusted-input heuristic itself, and its gap is the fixture rule below rather than a category of function — the only body the test fed it was `{"a": 1}`, which is precisely the one input none of the three repair rules can reach. The bucket list is left at five with the remainder named, rather than stretched to absorb it: an accounting that balances by widening a category until everything fits describes nothing. The taxonomy previously read "Five are in the reporting layer" while naming four things, and summed to twelve only through that one-item overcount. Every member is now named so the count can be checked instead of trusted.
+
+Almost none of that is the happy path, and that is the point: a function whose job is to describe a failure only ever runs on the sad one, and the sad ones are what the tests were not written from. `_closest_window` and `_ellipsis` exist for no reason except to make a fabricated quote legible to a human, and neither had a single assertion.
+
+**The second rule, from the fixtures again.** Cases 4, 6 and 7, and three of the twelve above, failed for exactly the reason cases 1 and 3 did: the input could not reach the failure. A 40-character payload is shorter than the excerpt window. `{"a": 1}` has no comma. A claim wrapper composing one definition cannot exhibit an ordering bug. So: before believing a test covers a rule, ask what feature of the input that rule keys on, and check that the fixture has it. That is a different question from "does this test exercise the function", and it is the one that keeps coming back.
+
+### What the sweep did not reach: two more doors, one round apart (iterations 7 and 8)
+
+The sweep ran over every function in `extract/` and declared `extract/model.py` covered. **Two more ways out of that module's central guarantee — that a failure originating in model output leaves as an `ExtractError` and nothing else — were found in the two rounds after it.** Neither is a regression from the sweep's twelve fixes. Both were there while it ran, and it could not see either. That is what this section exists to record about a sweep: its reach, not its success.
+
+**Door one, payload-side: `RecursionError` (iteration 7a).** Roughly two kilobytes of `[` exhausts the decoder's stack. `RecursionError` is a `RuntimeError`, so neither of `parse_payload`'s two handlers took it — not `json.JSONDecodeError`, not `_RefusedNumber` — and it went past the retry in `call_structured`, past the per-paper `except ExtractError` in `extract/cli.py`, and ended a batch run on a raw traceback with every later paper unattempted. Depth 200 parses; 1000 and 2000 escaped. It is the same defect `_bounded_int` had been added one round earlier to close, arriving through a door nobody had tried.
+
+**Door two, SDK-side: `anthropic.AnthropicError` (iteration 8a).** `_create` caught `anthropic.APIError` and its docstring promised it converted *any* SDK failure. `APIError` is not the SDK's exception root — it is a child of `anthropic.AnthropicError`, and three exported types sit outside its subtree: `AnthropicError` itself, `RetryableError`, and `WorkloadIdentityError`. All three escaped `_create` and `classify` as themselves. `RetryableError` is the one with consequences: the SDK's transport middleware propagates exceptions as-is unless they opt into the retry policy by type, so one that outlasts the retry budget arrives here intact. This contradicted two docstrings in the file at once — `_create`'s "converting any SDK failure into a `ModelCallError`", and `call_structured`'s "never lets an SDK exception escape — a caller processing a batch must be able to handle one paper's failure by catching one type." The fix is one identifier.
+
+**It was invisible for the fixture reason, again — and this is the sharpest instance of it yet.** Three tests covered the SDK error path: an `APIStatusError` carrying 529, an `APIConnectionError`, an `APITimeoutError`. Every one of them builds its input from an `APIError` subclass. The rule the bug keys on is *the exception's position in the SDK's class hierarchy*, and all three fixtures sat on the same side of it, so no assertion in any of them could have reached the failure however it were written. Restated as an experiment rather than an argument: reverting the catch to `APIError` turns the new test red in all three of its cases and leaves those three older tests green. The three green ones are the finding.
+
+The replacement test derives its universe from the installed `anthropic` package — every exported exception that is an `AnthropicError` and not an `APIError` — rather than from a list written here. That is the second of the two things that actually catch these, applied deliberately: a hand-written list of SDK error types can be missing exactly the type the `except` clause is missing, which is the same failure one level up. A companion test asserts the premise, that the remainder is non-empty, because a parametrization over nothing is a green test that ran nothing.
+
+**And the negative result, which is worth as much as the two positives.** Iteration 8a went looking specifically for a fifth payload-side door and did not find one. It enumerated what `json.loads` can raise under all three number hooks; established that `TypeError` and `UnicodeDecodeError` are unreachable because `response_text` always returns a `str`; measured that `repair_json` cannot raise, against a 2 MB body, at 0.7 ms and with no backtracking blowup; and fuzzed about thirty adversarial payloads and seven adversarial records. Every failure came out as an `ExtractError`. The door it found was on the SDK side, where it had not been looking. A deliberate search that comes back empty is a result, and recording only the doors that were found would make this section a list of defects instead of a map of where the risk is and is not.
+
+**Running tally on the second rule.** It has now failed three more times since it was written down, in three consecutive rounds, and none of the three is on the numbered list above: iteration 7a's coordinate-space window, where the excerpt test written that very round had no fence and no prose, so `repair_json` returned the body unchanged and the two-candidate branch never ran; iteration 7b's whitespace-only abstract, where the guard keys on `.strip()` and the fixture only ever supplied `None`; and iteration 8a's SDK hierarchy above. They are not numbered as decorative cases because they are not that shape — each test asserts the right thing about the case it does reach, and iteration 7a's reviewer looked for a decorative test in this scope and reported none. The shape is the other one: the assertion is fine, the fixture cannot get there. Seven decorative cases were found in four rounds and none since; the fixture rule has failed in every round since it was written. It is the one to check first.
+
+---
+
+## 2026-08-13 — `data/extracted/`: where Phase 2's output goes
+
+Recorded because it was nowhere. The directory existed only in `.gitignore` and in `extract/cli.py`; PLAN.md's architecture block enumerated `data/gold/` and `data/drafts/` and stopped, and this file never mentioned it. Phase 3 reads both documents for the layout and would not have found the directory its eval inputs live in. PLAN.md's architecture block now lists it too.
+
+**What it holds.** One JSON file per extracted paper, under a directory named for the schema version the record was written against: `data/extracted/<schema_version>/<slug>-<digest>.json`. The record is shape-identical to a `data/gold/` file and validates against the same `schema/experiment.schema.json` — that is the whole point, since Phase 3 compares the two field by field. The filename is a readable slug of the paper's `dedup_key` plus an eight-character SHA-256 digest of the same key; the digest is load-bearing, because two dedup keys can slugify to one string and a collision would present as "already extracted" rather than as an error.
+
+**Who writes it.** `python -m extract`, and nothing else. `extract/cli.py::DEFAULT_OUT_ROOT` is `<repo>/data/extracted`, overridable with `--out DIR`, which writes to `DIR/<schema_version>/` on the same rules. Every write goes through `_write_record` — `mkstemp` in the target directory then `os.replace` — because the *existence of the file is the only "already extracted" marker there is*. There is no database column recording that a paper was extracted, so a truncated file is worse than no file: every later run would read it as done, the paper would never be re-extracted, and the truncated JSON would flow into Phase 3. Idempotence is per (paper, schema_version), exactly as the key invariants require, and it is the versioned subdirectory that delivers the second half of that — bumping the schema forces a fresh extraction instead of silently reusing a record written against an older shape.
+
+**It is gitignored, deliberately.** It is machine output, reproducible from the database and the prompt, and it must never be mistaken for ground truth. `resolve_out_root` refuses any `--out` that resolves inside `data/gold/` for the same reason: an extracted record is indistinguishable from a gold one on disk, so a run pointed at the gold set would leave Phase 3 scoring the model against its own output and reporting the result as accuracy.
+
+**Phase 3 reads this directory.** The eval harness compares records here against `data/gold/`. Two things it will need that are settled elsewhere in this file and not here: the alignment key between a gold record and an extracted one is an open question reserved to the human (see the `experiment_id` entry of 2026-08-12 — the `(organism, agent)` fallback was withdrawn and no replacement is proposed), and quotes in gold records are transcribed from the PubMed abstract text, which is what `extracted_from: "abstract"` records are generated from too.
+
+### Open question, reserved to the human: JSON files or Postgres
+
+**Whether extracted records ultimately belong in `data/extracted/` as JSON at all is not settled, and is not settled here.** What is written above is what the code does today, and it was chosen by the implementation rather than ratified.
+
+The case for the filesystem is what Phase 2 needed: the file's existence is a free, crash-safe idempotence marker; the records are diffable and readable during prompt iteration; and no database round trip stands between an extraction run and someone reading its output. The case against it is that two other parts of PLAN.md assume a table — the stack names PostgreSQL, and Phase 4's `GET /experiments?organism=&intervention_type=&mechanism=&direction=` is a filtered query over every record, which is a table scan of a directory tree if the records stay as files. Phase 1 already stores raw papers in Postgres, so a run currently reads from a database and writes to a directory.
+
+The decision is the human's. It has a deadline of sorts: Phase 3 reads whatever exists, and Phase 4 has to query it, so the longer both hold the answer implicitly the more code assumes the current one. Noted rather than resolved, and the current behaviour is documented above so that whichever way it goes, what is being migrated *from* is written down.
+
+---
+
+## 2026-08-13 — Two gaps the extractor cannot close on its own
+
+Both surfaced in Phase 2 review. Neither is a Phase 2 fix: one needs a schema
+change, the other an eval-design decision. Recorded here so Phase 3 meets them
+as known shapes rather than as anomalies in its numbers.
+
+### `organism: "other"` with no species defeats the id collision guard
+
+`_organism_identity` returns `(slug, source_value)`, and `_experiment_id`
+compares the *source values* of two ids to decide whether a numeric tail is
+honest disambiguation or a silent merge. When `organism` is `"other"` and
+`species` is absent, it returns `("other", "other")` — the same pair for every
+such record. Two genuinely different organisms in one paper therefore present
+as one intervention reported twice: the collision guard does not fire, and the
+records are separated by `-2` alone.
+
+`eisenberg2009` is exactly this shape. Its three records are *C. elegans*,
+*S. cerevisiae* and *D. melanogaster*, all spermidine, and the latter two both
+carry `organism: "other"` — the enum is the MVP filter vocabulary and neither
+yeast nor fly is in it. The gold labels populate `species` on both, which is
+the only reason they get distinct ids. An extracted record that omits `species`
+on a paper of this shape produces the merge instead, and nothing downstream can
+tell it happened.
+
+**The fix is upstream, not here.** The schema already says to populate `species`
+whenever `organism` is `other`, but says it as guidance rather than as a
+constraint, so a record without it is valid. Making it required when
+`organism == "other"` is a **v0.5.0 schema change** — it changes what validates,
+which is a decision about the gold set and the API surface, not about the
+extractor. `extract/extract.py` already enforces two invariants the schema
+cannot state; this would be a third, except that here the honest place is the
+schema itself. Deliberately not worked around in Phase 2 code.
+
+### A quote straddling the title/abstract join verifies
+
+`check_quotes_verbatim` matches against the exact prompt the model was shown,
+which is `f"Title: {title}\n\n{text}"`, and the whitespace-collapsed comparison
+turns that join into a single space. So a "quote" whose first half is the tail
+of the title and whose second half is the head of the abstract passes the
+verbatim check although that sentence appears nowhere in the paper — the
+assembled-from-two-places fabrication the system prompt forbids, verified as
+genuine.
+
+The same weakness exists across sentence boundaries inside the abstract, so it
+predates the title fix; including the title widened it by adding one more join,
+and a high-value one, since the title is where the organism and the agent
+usually are. Checking each quote against the title and the text as two separate
+haystacks would close it without giving up the title fix.
+
+Not done in Phase 2, because it trades one false-accept shape for a
+false-reject shape — a quote legitimately spanning two sentences would start
+failing. **Open question for Phase 3, reserved to the human:** does the
+verbatim check run against one haystack or per-region?
+
+#### What the gold set actually says about quote shape
+
+Measured 2026-08-13 over all 221 `source_quote` values in `data/gold/`,
+enumerated with `scripts/check_gold.py::iter_quotes` rather than by pattern
+over the JSON:
+
+| | count | share |
+|---|---|---|
+| total quotes | 221 | — |
+| a single whole sentence | 100 | 45.2% |
+| **not a whole sentence** | **121** | **54.8%** |
+| **spanning a sentence boundary** | **5** | **2.3%** |
+
+96 quotes are `extracted_from: abstract`, 125 `full_text`.
+
+Two things follow, and they are not the same number — worth separating, because
+one sentence of prompt and one design decision each turn on a different one.
+
+**54.8% are sub-sentence slices** — clauses like `extends the lifespan of male,
+but not female, mice by 23%`, and table rows. Whole sentences are the minority.
+The system prompt briefly told the model "if the sentence that states the value
+is long, the quote is that whole sentence", which contradicts how the set was
+labelled; Phase 3 would have scored the resulting mismatch as model error when
+it was a prompt error. Removed. The prompt now states the convention as
+labelled: a contiguous verbatim slice, no ellipsis and no editorial brackets,
+long enough to carry the value and what the value refers to.
+
+**Only 2.3% — five quotes — span a sentence boundary at all**, and all five are
+`full_text` mechanism or background sentences. That is the number bearing on
+the straddle question above: switching the verbatim check from one haystack to
+per-region would false-reject on the order of five of 221 gold quotes, against
+closing a fabrication shape that currently verifies. It does not settle the
+question — the rate in *extracted* output is not the rate in gold, and the
+title/abstract join is a different boundary from the sentence joins measured
+here — but it does mean the false-reject cost is small and countable rather
+than unknown. Method caveat: sentence boundaries were detected on the quote
+text itself, with an abbreviation list (`e.g.`, `et al.`, `Fig.`, initials) to
+avoid counting a period inside an abbreviation; the gold records do not carry
+the abstract, so this measures the quotes' own shape rather than their position
+in the source.

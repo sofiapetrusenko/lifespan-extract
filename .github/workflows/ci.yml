@@ -33,6 +33,4 @@ jobs:
         run: python scripts/validate_classifier_set.py
 
       - name: Tests
-        run: |
-          # exit code 5 = no tests collected; acceptable until Phase 2
-          pytest || [ $? -eq 5 ]
+        run: pytest

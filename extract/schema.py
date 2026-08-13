@@ -194,6 +194,12 @@ def check_provenance(record: Any) -> None:
     in both directions: an absent value must not carry a quote (that quote
     would be supporting nothing), and a present value must carry one (a value
     with no sentence behind it is a guess).
+
+    A quote of nothing but whitespace counts as no quote. It is the one string
+    that would otherwise pass both halves of the invariant while supporting
+    nothing: `check_quotes_verbatim` collapses it to the empty string, and the
+    empty string is a substring of every text there is, so the quote would
+    "verify" against a paper it was never read from.
     """
     for path, claim in _iter_claims(record):
         value = claim.get("value")
@@ -204,7 +210,7 @@ def check_provenance(record: Any) -> None:
                 f"{path}: value is {value!r} but source_quote is {quote!r}; "
                 "an absent value has nothing to quote."
             )
-        if not absent and not quote:
+        if not absent and not _quotes_something(quote):
             raise RecordValidationError(
                 f"{path}: value is {value!r} with no source_quote; every reported "
                 "value must carry the sentence it was read from."
@@ -253,6 +259,11 @@ def collapse_whitespace(text: str) -> str:
     test rather than by an import.
     """
     return re.sub(r"\s+", " ", text).strip()
+
+
+def _quotes_something(quote: Any) -> bool:
+    """True when `quote` is a string with at least one non-whitespace character."""
+    return isinstance(quote, str) and bool(quote.strip())
 
 
 def _closest_window(quote: str, text: str) -> str:

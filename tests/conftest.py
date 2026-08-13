@@ -22,6 +22,7 @@ import httpx
 import pytest
 from sqlalchemy.engine import Engine
 
+from extract.schema import CLAIM_KEYS
 from ingest.db import init_db, make_engine
 from ingest.http import RetryPolicy
 
@@ -143,6 +144,26 @@ def claim(value: Any, quote: str = QUOTE) -> dict[str, Any]:
     """
     absent = value is None or value == "not_reported"
     return {"value": value, "source_quote": None if absent else quote, "confidence": "high"}
+
+
+def claims(node: Any) -> list[dict[str, Any]]:
+    """Return every claim wrapper in a record, at any depth.
+
+    Recognised by shape, the way the production walker recognises them: a dict
+    holding all of `CLAIM_KEYS` is a claim and is not descended into. Shared
+    here because both the extractor's records and the CLI's written files are
+    checked claim by claim.
+    """
+    found: list[dict[str, Any]] = []
+    if isinstance(node, dict):
+        if CLAIM_KEYS <= set(node):
+            return [node]
+        for child in node.values():
+            found += claims(child)
+    elif isinstance(node, list):
+        for child in node:
+            found += claims(child)
+    return found
 
 
 def experiment_payload(

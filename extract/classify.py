@@ -62,13 +62,16 @@ Answer true only when all three hold:
    variant, or a cohort study is not an intervention.
 2. The lifespan or survival of whole organisms is a measured outcome. Ageing
    biomarkers, biological-age clocks, healthspan endpoints, cellular senescence
-   and the replicative lifespan of cell lines are all outside scope.
+   and the replicative lifespan of cell lines are all outside scope. But they
+   do not exclude a paper on their own: if whole-organism lifespan or survival
+   is among the measured outcomes, other endpoints reported alongside it make
+   no difference.
 3. The paper reports its own experiment. Reviews, meta-analyses, commentary and
    protocol papers describe experiments rather than performing them.
 
-Judge only the text you are given. When it genuinely does not settle the
-question, answer true and say in the reason what is unresolved — the extraction
-step is the second gate, and a wrongly excluded paper is never seen again.
+Judge only the text you are given, on the three criteria as written. When the
+text genuinely does not settle a criterion, say which one and what is
+unresolved in the reason, and set confidence to low.
 """
 
 

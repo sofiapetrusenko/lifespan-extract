@@ -17,8 +17,15 @@ import pytest
 
 from extract.errors import ExtractError, RecordValidationError
 from extract.schema import (
+    CODE_ASSIGNED_CLAIM_KEYS,
+    CODE_ASSIGNED_EXPERIMENT_KEYS,
     SCHEMA_PATH,
     UNSUPPORTED_KEYWORDS,
+    _closest_window,
+    _ellipsis,
+    _flatten,
+    _is_code_assigned,
+    _resolve_composition,
     build_extraction_schema,
     check_provenance,
     check_quotes_verbatim,
@@ -91,6 +98,52 @@ def test_claim_wrappers_carry_merged_provenance(derived):
     assert organism["required"] == list(organism["properties"])
 
 
+# --- descriptions, which are the prompt the model actually reads ---
+#
+# Two branches in `extract/schema.py` decide where a composed schema's
+# description may land, and both were deletable with the suite green. They are
+# opposite halves of one rule, so they are pinned separately: `_flatten`'s skip
+# keeps a definition's description off the wrapper that composes it, and
+# `_inherited_description` puts it back on the bare `$ref` that only names it.
+# Both expectations are read out of the schema file rather than written here,
+# so a description reworded in the file cannot make either test stale.
+
+
+def test_a_claim_wrapper_is_not_relabelled_with_the_provenance_boilerplate(document, derived):
+    """`claim_organism` composes `provenance`; it is not a description of one.
+
+    Without `_flatten`'s `source is not node` skip, every claim wrapper in the
+    request schema — `organism` and `sex` among them — is labelled "Provenance
+    keys shared by every claim wrapper", which is what the model is then asked
+    to fill in.
+    """
+    boilerplate = document["$defs"]["provenance"]["description"]
+    assert boilerplate, "the premise: the composed definition has a description to leak"
+
+    mislabelled = [node for node in walk(derived) if node.get("description") == boilerplate]
+    assert not mislabelled, f"{len(mislabelled)} node(s) carry the composed schema's description"
+
+    for field in ("organism", "sex"):
+        claim = experiment_schema(derived)["properties"][field]
+        assert "description" not in claim
+
+
+def test_a_bare_ref_keeps_the_description_of_the_definition_it_names(document, derived):
+    """`{"$ref": "#/$defs/confidence"}` means that definition, so it reads as one.
+
+    The inverse case: this node adds nothing of its own, so dropping the
+    inherited description — deleting `_inherited_description`'s body — strips
+    the guidance from every claim's `confidence` key without changing a
+    validated field, and the model is left to guess what the levels mean.
+    """
+    expected = document["$defs"]["confidence"]["description"]
+    assert expected, "the premise: the referenced definition has a description to inherit"
+
+    for field in ("organism", "sex", "strain"):
+        claim = experiment_schema(derived)["properties"][field]
+        assert claim["properties"]["confidence"].get("description") == expected
+
+
 def test_enums_match_the_source_schema(document, derived):
     """A drift guard: the derived enum is the file's enum, not a copy of it."""
     experiment = experiment_schema(derived)
@@ -140,9 +193,82 @@ def test_missing_experiments_raises(document):
         build_extraction_schema(document)
 
 
+@pytest.mark.parametrize("items", [None, "nope", [], 42])
+def test_experiments_without_an_items_schema_raises(document, items):
+    """The sibling of the guard above, and the one nothing was watching.
+
+    Without it, a missing `items` is a bare `KeyError` — not an `ExtractError`,
+    so no caller's handler recognises it — and a non-dict `items` is worse: it
+    flows through `_flatten` untouched and the model is sent a request schema
+    that asks for nothing in particular.
+    """
+    experiments = document["properties"]["experiments"]
+    if items is None:
+        del experiments["items"]
+    else:
+        experiments["items"] = items
+
+    with pytest.raises(ExtractError, match="no items schema"):
+        build_extraction_schema(document)
+
+
+def test_composed_schemas_are_applied_in_the_order_they_are_listed(document):
+    """Later entries win the merge, so reversing them silently changes the result.
+
+    Unobservable against the real file, where every wrapper composes exactly
+    one definition — which is why a synthetic document is used here rather than
+    `document`. The order still has to hold: an `allOf` that narrowed a key the
+    first entry declared would be inverted by a reversal, and nothing about the
+    merge would announce it.
+    """
+    defs = {
+        "first": {"type": "object", "properties": {"v": {"type": "string"}}},
+        "second": {"type": "object", "properties": {"v": {"type": "integer"}}},
+    }
+    node = {"allOf": [{"$ref": "#/$defs/first"}, {"$ref": "#/$defs/second"}]}
+
+    listed = _resolve_composition(node, defs, ())
+    assert [source["properties"]["v"]["type"] for source in listed] == ["string", "integer"]
+    # ...and the merge consequence, so the ordering is pinned by its effect too.
+    assert _flatten(node, defs, ())["properties"]["v"] == {"type": "integer"}
+
+
+def test_code_assigned_experiment_keys_are_pruned_only_at_the_experiment_level():
+    """`notes` on an experiment is the labeller's; `notes` nested elsewhere is not.
+
+    The path check is what keeps the prune scoped. Without it any future
+    property named `notes` or `experiment_id` at any depth would be silently
+    dropped from the request schema — the model would never be asked for it and
+    nothing would say so. Both key sets are read from the module, so a key added
+    there is covered here without editing this test.
+    """
+    for name in CODE_ASSIGNED_EXPERIMENT_KEYS:
+        assert _is_code_assigned(name, ()) is True
+        assert _is_code_assigned(name, ("intervention",)) is False
+        assert _is_code_assigned(name, ("lifespan_effect", "direction")) is False
+
+    # A claim key is the caller's wherever it appears — no path condition.
+    for name in CODE_ASSIGNED_CLAIM_KEYS:
+        assert _is_code_assigned(name, ()) is True
+        assert _is_code_assigned(name, ("intervention", "agent")) is True
+
+
 def test_load_schema_reports_a_missing_file(tmp_path):
     with pytest.raises(ExtractError, match="schema not found"):
         load_schema(tmp_path / "absent.json")
+
+
+@pytest.mark.parametrize("body", ["[]", '["experiment"]', '"a string"', "42", "null"])
+def test_load_schema_reports_a_top_level_that_is_not_an_object(tmp_path, body):
+    """The annotation says `dict[str, Any]`, and valid JSON is not enough to earn it.
+
+    A schema file that parses but is not an object would otherwise be returned,
+    and the first thing to notice would be `.get` failing somewhere downstream.
+    """
+    path = tmp_path / "wrong-shape.json"
+    path.write_text(body)
+    with pytest.raises(ExtractError, match="JSON object at the top level"):
+        load_schema(path)
 
 
 def test_load_schema_reports_bad_json(tmp_path):
@@ -184,6 +310,24 @@ def test_validate_record_reports_every_error(document):
     assert "experiments" in message
 
 
+def test_a_validation_error_names_its_location_with_array_indices():
+    """`experiments[0].organism.value`, not `experiments.0.organism.value`.
+
+    The path is the only thing in the message that says *which* experiment
+    failed, and a bracketed index is what makes it copy-pasteable into `jq` and
+    readable in a record with several experiments. Built from a real gold record
+    and the real validator so the shape is the one an operator would actually
+    see.
+    """
+    record = json.loads((GOLD_DIR / "harrison2009.json").read_text())
+    record["experiments"][0]["organism"]["value"] = "Mus musculus, not in the enum"
+
+    with pytest.raises(RecordValidationError) as raised:
+        validate_record(record, load_schema())
+
+    assert "experiments[0].organism.value" in str(raised.value)
+
+
 def test_check_provenance_rejects_a_quote_for_an_absent_value():
     record = {"experiments": [{"sex": {
         "value": "not_reported",
@@ -199,6 +343,26 @@ def test_check_provenance_rejects_a_value_with_no_quote():
     record = {"experiments": [{"organism": {
         "value": "M. musculus",
         "source_quote": None,
+        "confidence": "high",
+        "extracted_from": "abstract",
+    }}]}
+    with pytest.raises(RecordValidationError, match="no source_quote"):
+        check_provenance(record)
+
+
+@pytest.mark.parametrize("blank", ["   ", "\n", "\t"])
+def test_check_provenance_rejects_a_whitespace_only_quote(blank):
+    """The one quote that would otherwise satisfy both halves of the invariant.
+
+    A truthy string, so the "value with no quote" check used to pass it, and
+    `check_quotes_verbatim` collapses it to the empty string — which is a
+    substring of every text there is. It would verify against a paper it was
+    never read from, which is the exact failure the verbatim check exists to
+    make impossible.
+    """
+    record = {"experiments": [{"organism": {
+        "value": "M. musculus",
+        "source_quote": blank,
         "confidence": "high",
         "extracted_from": "abstract",
     }}]}
@@ -236,6 +400,78 @@ def test_a_fabricated_quote_names_the_claim_and_the_closest_window():
     assert "experiments[0].organism" in message
     assert "Naked mole rats" in message
     assert "closest:" in message
+
+
+@pytest.mark.parametrize(
+    ("altered", "difference"),
+    [
+        ("EXTENDED MEDIAN SURVIVAL BY 14%", "case"),
+        ("Extended median survival by 14%", "case, one letter"),
+        ("extended median survival by 14%!", "punctuation"),
+        ("extended median survival by 14﹪", "unicode look-alike percent sign"),
+        ("extended median survivаl by 14%", "unicode look-alike Cyrillic a"),
+    ],
+)
+def test_a_quote_differing_only_in_case_punctuation_or_unicode_is_not_verbatim(
+    altered, difference
+):
+    """"Nothing else is normalised" — whitespace is the only forgiven difference.
+
+    Each of the three dimensions the docstring names gets a case, because
+    widening the comparison is a one-line change that reads like a kindness:
+    `.lower()` on both sides passes every other verbatim test in this file, and
+    then a quote the paper never wrote verifies against it. A fabricated
+    citation is the one failure this project cannot absorb, and a fabrication
+    that differs from the real sentence by its capitalisation is still one.
+    """
+    with pytest.raises(RecordValidationError, match="not verbatim"):
+        check_quotes_verbatim(quoted(altered), PAPER_TEXT)
+
+
+def test_the_closest_window_is_anchored_on_what_the_two_share():
+    """The window points at the region the quote was nearly right about.
+
+    That is what tells a transcription slip apart from a fabrication at a
+    glance. Unanchored — a window from the top of the text — the error prints a
+    region with no relation to the quote, and every near-miss looks like an
+    invention.
+    """
+    sentence = "Rapamycin extended median survival by 14%."
+    text = "A" * 300 + sentence + "B" * 300
+    nearly = sentence.replace("14%", "41%")
+
+    window = _closest_window(nearly, text)
+
+    assert "Rapamycin extended median survival" in window
+    assert "AAA" not in window and "BBB" not in window
+
+
+# "Short enough to read in a terminal", stated as a number here rather than read
+# off `_ellipsis`'s own default: a bound derived from the thing under test moves
+# when the thing under test moves, which is exactly the failure this pins.
+TERMINAL_LINE = 200
+
+
+@pytest.mark.parametrize(
+    "quote",
+    ["x" * 5000, "Naked mole rats lived in colonies.\n" * 300, "word " * 2000],
+)
+def test_a_long_fabricated_quote_is_reported_as_one_short_line(quote):
+    """The error names the failure; it does not reproduce the payload.
+
+    Model output is untrusted and unbounded, so an error message built from it
+    has to be bounded too. Both halves matter: one line, because a multi-line
+    excerpt breaks up the surrounding message, and short, because a run over
+    twenty papers should stay readable.
+    """
+    rendered = _ellipsis(quote)
+    assert "\n" not in rendered
+    assert len(rendered) <= TERMINAL_LINE
+
+    with pytest.raises(RecordValidationError) as raised:
+        check_quotes_verbatim(quoted(quote), PAPER_TEXT)
+    for line in str(raised.value).splitlines():
+        assert len(line) <= TERMINAL_LINE + 20, "an error line is unbounded by the payload"
 
 
 def test_a_null_quote_is_not_checked_against_the_text():

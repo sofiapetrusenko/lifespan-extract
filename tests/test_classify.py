@@ -11,10 +11,25 @@ from extract.classify import (
     classify,
 )
 from extract.errors import ExtractError, ModelResponseError
+from extract.extract import EXTRACTION_MODEL
 from tests.conftest import StubClient, model_response
 
 TITLE = "Rapamycin fed late in life extends lifespan in genetically heterogeneous mice"
 ABSTRACT = "Rapamycin extended median and maximal lifespan of both male and female mice."
+
+# Anthropic's published input price per million tokens, read on 2026-08-12.
+#
+# A static, hand-maintained claim, and written down as one. There is no pricing
+# endpoint this package may call — a unit test that made a network request
+# would be worse than a stale number — so the honest form is the figures plus
+# the date they were read, correctable by hand when they move. What the test
+# below actually asserts is the *ordering*, which is what PLAN.md's cost
+# cascade claims and is far more stable than the figures themselves.
+MODEL_INPUT_PRICE_PER_MTOK = {
+    "claude-haiku-4-5": 1.00,
+    "claude-sonnet-5": 3.00,
+    "claude-opus-5": 5.00,
+}
 
 
 def decision(relevant=True, reason="Rapamycin was fed and lifespan measured.", confidence="high"):
@@ -58,6 +73,37 @@ def test_the_request_uses_the_cheap_model_and_carries_the_text():
     assert TITLE in user and ABSTRACT in user
     schema = request["output_config"]["format"]["schema"]
     assert schema["properties"]["confidence"]["enum"] == list(CONFIDENCE_LEVELS)
+
+
+def test_the_gate_runs_on_a_strictly_cheaper_model_than_the_extractor():
+    """The cascade is the deliverable, and the wiring test does not pin it.
+
+    `test_the_request_uses_the_cheap_model_and_carries_the_text` asserts the
+    request carries `CLASSIFIER_MODEL`, which says nothing about that
+    constant's value: setting `CLASSIFIER_MODEL = "claude-opus-5"`, or simply
+    setting it equal to `EXTRACTION_MODEL`, leaves that test green and deletes
+    PLAN.md Phase 2's "cheap-model gate ... (cost cascade)" outright. This
+    asserts the two values instead — two different models, the classifier the
+    cheaper of them.
+    """
+    assert CLASSIFIER_MODEL != EXTRACTION_MODEL, (
+        "the gate and the extractor run on one model, so there is no cost "
+        "cascade — every screened-out paper is now billed at extraction rates."
+    )
+    for constant, model in (
+        ("CLASSIFIER_MODEL", CLASSIFIER_MODEL),
+        ("EXTRACTION_MODEL", EXTRACTION_MODEL),
+    ):
+        assert model in MODEL_INPUT_PRICE_PER_MTOK, (
+            f"{constant} is {model!r}, which has no entry in "
+            "MODEL_INPUT_PRICE_PER_MTOK. Add its published price and the date "
+            "you read it, so the cascade stays a checked claim rather than an "
+            "assumed one."
+        )
+    assert (
+        MODEL_INPUT_PRICE_PER_MTOK[CLASSIFIER_MODEL]
+        < MODEL_INPUT_PRICE_PER_MTOK[EXTRACTION_MODEL]
+    ), f"{CLASSIFIER_MODEL!r} is not cheaper than {EXTRACTION_MODEL!r}"
 
 
 def test_a_paper_with_no_abstract_is_never_judged_from_its_title():
