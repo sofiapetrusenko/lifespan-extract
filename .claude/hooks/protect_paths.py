@@ -20,6 +20,7 @@ reaches for `eval`, a subshell or an inline interpreter while naming a protected
 path, is blocked unparsed — being wrong in the allow direction costs ground
 truth, being wrong in the block direction costs one round trip.
 """
+from __future__ import annotations
 
 import json
 import re
@@ -221,4 +222,16 @@ def main() -> None:
     sys.exit(0)
 
 
-main()
+if __name__ == "__main__":
+    try:
+        main()
+    except SystemExit:
+        raise
+    except BaseException as exc:  # noqa: BLE001 — fail closed, never fail open
+        print(
+            f"BLOCKED: guard crashed ({type(exc).__name__}: {exc}). "
+            "Refusing the tool call rather than proceeding unguarded. "
+            "Fix .claude/hooks/protect_paths.py before continuing.",
+            file=sys.stderr,
+        )
+        sys.exit(2)
