@@ -35,10 +35,12 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import sys
 import tempfile
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -113,7 +115,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         client = make_client()
         engine = make_engine()
         init_db(engine)
-        summary = run_extraction(engine, client=client, limit=args.limit, out_root=args.out)
+        summary = run_extraction(
+            engine, client=client, limit=args.limit, out_root=args.out,
+            argv=list(argv) if argv is not None else sys.argv[1:],
+        )
     except OutputPathError as exc:
         # Ahead of the clause below, which would otherwise take it: this is the
         # one failure here that is a usage error rather than a run failure, and
@@ -134,23 +139,62 @@ def main(argv: Sequence[str] | None = None) -> int:
     return 1 if summary.failed else 0
 
 
+def queue_size(engine: Engine, out_dir: Path) -> int:
+    """Count the papers eligible for extraction right now.
+
+    The same three conditions `_papers` applies, without the limit: a row is in
+    the queue when it has an abstract and has no record under `out_dir` yet.
+    Reported in the header so a run's counts can be read against the work that
+    was available when it started — a run that considered 30 of 30 and one that
+    considered 30 of 400 print the same summary line otherwise.
+    """
+    with Session(engine) as session:
+        return sum(
+            1
+            for paper in session.exec(select(RawPaper))
+            if paper.abstract
+            and paper.abstract.strip()
+            and not record_path(out_dir, paper).exists()
+        )
+
+
 def run_extraction(
     engine: Engine,
     *,
     client: ModelClient,
     limit: int,
     out_root: Path,
+    argv: Sequence[str] | None = None,
 ) -> RunSummary:
     """Process up to `limit` papers, writing one record per extracted paper.
 
     Refuses an `out_root` inside `data/gold/` before anything is written; see
     `resolve_out_root`.
+
+    `argv` is recorded in the header and used for nothing else. It is a
+    parameter rather than a read of `sys.argv` because this function is called
+    directly by tests and could be called by a future caller that is not this
+    CLI, and a header claiming an argv the run did not have is worse than one
+    that says the run was driven programmatically.
     """
     version = schema_version(schema_document())
     out_dir = resolve_out_root(out_root) / version
     out_dir.mkdir(parents=True, exist_ok=True)
     _check_writable(out_dir)
+
+    # Provenance first, before any paper line. Without it a log records what a
+    # run did but not what produced it: neither the 2026-08-17 nor the
+    # 2026-08-19 log carries the argv, the limit, the queue size or a
+    # timestamp, so "30 considered" cannot be tied to `--limit 30` by anyone
+    # reading the file, and a pass assembling PR evidence from those logs had
+    # to stop. Each line is `key:` at a fixed width so the block greps as
+    # fields rather than prose.
+    print(f"started:  {datetime.now(timezone.utc).isoformat(timespec='seconds')}")
+    print(f"argv:     {shlex.join(argv) if argv is not None else '(called directly)'}")
+    print(f"limit:    {limit}")
+    print(f"out_dir:  {out_dir}")
     print(f"schema:   v{version}  ->  {out_dir}")
+    print(f"queued:   {queue_size(engine, out_dir)} paper(s) eligible at start")
 
     summary = RunSummary()
     for paper in _papers(engine, limit=limit, out_dir=out_dir, summary=summary):
@@ -178,8 +222,9 @@ def _check_writable(out_dir: Path) -> None:
     read-only directory satisfies it, and so does a full disk. The failure then
     lands at the write, which is the last step of a paper whose classify and
     extract calls have already been made and paid for — and because that
-    `OSError` is per-paper by design, every paper in the batch buys two model
-    calls and throws them away. Forty wasted calls on a twenty-paper run, where
+    `OSError` is per-paper by design, every paper in the batch buys its model
+    calls and throws them away: one at the gate and, for a paper that passes
+    it, two more at extraction. Sixty wasted calls on a twenty-paper run, where
     one probe costs nothing.
 
     Probing with the same `tempfile.mkstemp` the real write uses, in the real

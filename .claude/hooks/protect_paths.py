@@ -4,10 +4,11 @@
 Exit 0 = allow. Exit 2 = block; stderr is fed back to the agent.
 
 Policy (CLAUDE.md): `data/gold/` is human-controlled ground truth and `.claude/`
-is orchestration config. An agent never writes to either. The one permitted
-programmatic write into `data/gold/` is `scripts/check_gold.py --promote`, run
-by the *human* — so this hook blocks an agent-invoked `--promote` outright
-rather than trusting the rule to be read.
+is orchestration config. An agent never writes to either. The permitted
+programmatic writes into `data/gold/` are `scripts/check_gold.py --promote` and
+`scripts/validate_gold.py --write-manifest`, both run by the *human* — so this
+hook blocks an agent-invoked human-only flag outright rather than trusting the
+rule to be read.
 
 The Bash rule is "is a protected path the TARGET of a write", not "does this
 line contain a protected path and a write-ish character somewhere". The old
@@ -83,8 +84,9 @@ PREFIXES = frozenset({
 
 GOLD_NOTE = (
     "data/gold/ is human-controlled ground truth; .claude/ is orchestration "
-    "config. Reads are fine — writes are not. The only permitted write into "
-    "data/gold/ is `scripts/check_gold.py --promote`, run by the human. "
+    "config. Reads are fine — writes are not. The only permitted writes into "
+    "data/gold/ are `scripts/check_gold.py --promote` and "
+    "`scripts/validate_gold.py --write-manifest`, both run by the human. "
     "Do not work around this block, including by rephrasing the command: "
     "stop and report it."
 )
@@ -125,21 +127,29 @@ def path_args(argv: list[str]) -> list[str]:
     return [token for token in argv[1:] if not token.startswith("-")]
 
 
-# check_gold.py flags that write into data/gold/. Both are human-invoked:
-# --promote moves a draft in, --refresh-quotes --write edits records in place.
-HUMAN_ONLY_FLAGS = ("--promote", "--refresh-quotes")
+# Flags that write into data/gold/, on either script that carries one. All are
+# human-invoked: --promote moves a draft in, --refresh-quotes --write edits
+# records in place, --write-manifest regenerates the integrity manifest.
+HUMAN_ONLY_FLAGS = ("--promote", "--refresh-quotes", "--write-manifest")
+
+# The scripts those flags belong to. The gate exists so that naming a flag in
+# unrelated prose — `rg -- --refresh-quotes README.md` — is not blocked.
+# Widening it to validate_gold costs one false positive in the conservative
+# direction: grepping one of these scripts *for* a flag name is now refused.
+# That is the cheaper error, and it is the same trade the rest of this file makes.
+HUMAN_ONLY_SCRIPTS = ("check_gold", "validate_gold")
 
 
 def check_promote(command: str) -> None:
-    """check_gold.py's writing modes are the human's to run."""
-    if "check_gold" not in command:
+    """The writing modes of the gold-set scripts are the human's to run."""
+    if not any(script in command for script in HUMAN_ONLY_SCRIPTS):
         return
     for flag in HUMAN_ONLY_FLAGS:
         if re.search(rf"(?:^|\s){re.escape(flag)}(?:\s|=|$)", command):
             block(
-                f"this command runs check_gold.py {flag}, which writes into "
-                "data/gold/. That is a human-invoked step. Hand the exact command "
-                "back to the human instead of running it."
+                f"this command passes {flag}, which writes into data/gold/. "
+                "That is a human-invoked step. Hand the exact command back to "
+                "the human instead of running it."
             )
 
 

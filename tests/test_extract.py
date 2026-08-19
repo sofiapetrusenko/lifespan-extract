@@ -39,12 +39,16 @@ from extract.extract import (
     _slug,
     _split,
     extract_record,
-    extraction_schema,
+    identity_schema,
+    outcome_schema,
     schema_document,
 )
 from extract.schema import (
     CODE_ASSIGNED_CLAIM_KEYS,
     CODE_ASSIGNED_EXPERIMENT_KEYS,
+    EXPERIMENT_INDEX,
+    IDENTITY_PROPERTIES,
+    OUTCOME_PROPERTIES,
     SCHEMA_PATH,
 )
 from ingest.models import RawPaper
@@ -54,7 +58,10 @@ from tests.conftest import (
     claim,
     claims,
     experiment_payload,
+    extraction_responses,
+    identity_payload,
     model_response,
+    outcome_payload,
 )
 
 TITLE = "Rapamycin fed late in life extends lifespan"
@@ -137,10 +144,6 @@ def paper(**overrides: Any) -> RawPaper:
     return RawPaper.build(**fields)
 
 
-def payload(*experiments: dict[str, Any]) -> dict[str, Any]:
-    return {"experiments": list(experiments) or [experiment_payload()]}
-
-
 def test_the_provenance_vocabulary_is_the_schema_s():
     """A drift guard: the stamped values are the ones the schema allows."""
     document = json.loads(SCHEMA_PATH.read_text())
@@ -148,7 +151,7 @@ def test_the_provenance_vocabulary_is_the_schema_s():
 
 
 def test_a_record_validates_against_the_real_schema():
-    client = StubClient(model_response(payload()))
+    client = StubClient(*extraction_responses())
     record = extract_record(paper(), TEXT, client=client)
 
     VALIDATOR.validate(record)
@@ -162,17 +165,43 @@ def test_a_record_validates_against_the_real_schema():
     }
 
 
-def test_the_request_uses_the_extraction_model_and_the_derived_schema():
-    client = StubClient(model_response(payload()))
+def test_both_requests_use_the_extraction_model_and_their_own_derived_schema():
+    """Two calls, one model, and the two halves of the schema — never the same one twice."""
+    client = StubClient(*extraction_responses())
     extract_record(paper(), TEXT, client=client)
 
-    (request,) = client.requests
-    assert request["model"] == EXTRACTION_MODEL
-    assert request["output_config"]["format"]["schema"] == extraction_schema()
-    assert TEXT in request["messages"][0]["content"]
+    identity, outcome = client.requests
+    assert identity["model"] == outcome["model"] == EXTRACTION_MODEL
+    assert identity["output_config"]["format"]["schema"] == identity_schema()
+    assert outcome["output_config"]["format"]["schema"] == outcome_schema()
+    assert identity_schema() != outcome_schema()
+    for request in (identity, outcome):
+        assert TEXT in request["messages"][0]["content"]
 
 
-def test_the_quote_haystack_is_exactly_the_prompt_the_model_was_sent(monkeypatch):
+def test_the_second_call_is_told_what_the_first_one_found():
+    """The join is by index, so the second call has to be shown the numbering.
+
+    Without the echo the model is asked for `experiment_index` values against a
+    list it cannot see, and the merge is left to reject whatever it guesses.
+    """
+    client = StubClient(
+        *extraction_responses(
+            experiment_payload(organism="C. elegans", agent="spermidine"),
+            experiment_payload(agent="rapamycin"),
+        )
+    )
+    extract_record(paper(), TEXT, client=client)
+
+    listing = client.requests[1]["messages"][0]["content"]
+    assert "0. " in listing and "1. " in listing
+    assert "spermidine" in listing and "rapamycin" in listing
+    # Values only: the echo is there to tell the experiments apart, and quoting
+    # the first call's quotes back would invite the second call to reuse them.
+    assert QUOTE not in listing.split(TEXT, 1)[1]
+
+
+def test_the_quote_haystack_is_the_paper_prompt_and_not_the_echoed_list(monkeypatch):
     """The two are built from one string so they cannot drift — pinned in both directions.
 
     A narrower haystack rejects a real quote and throws away the record; that
@@ -182,10 +211,13 @@ def test_the_quote_haystack_is_exactly_the_prompt_the_model_was_sent(monkeypatch
     model was never shown passes them all, and a quote from that text verifies
     against a paper the model did not read.
 
-    Neither side of this assertion is a literal. Both come out of the run — the
-    haystack from the call, the prompt from what the stub client recorded — so
-    the test cannot drift with the code the way a written-down expected string
-    would.
+    The split gives that half a concrete shape. The second call's user message
+    is the paper prompt *plus* the list of what the first call found, and that
+    list is model output rather than source text — so a quote lifted from it
+    must not verify. The haystack is therefore the first call's message
+    exactly, which is the paper prompt, and a strict prefix of the second's.
+
+    None of the three sides of this is a literal: all come out of the run.
     """
     seen: list[str] = []
     verbatim = extract_module.check_quotes_verbatim
@@ -196,11 +228,36 @@ def test_the_quote_haystack_is_exactly_the_prompt_the_model_was_sent(monkeypatch
 
     monkeypatch.setattr(extract_module, "check_quotes_verbatim", recording)
 
-    client = StubClient(model_response(payload()))
+    client = StubClient(*extraction_responses())
     extract_record(paper(), TEXT, client=client)
 
     (haystack,) = seen
-    assert haystack == client.requests[0]["messages"][0]["content"]
+    identity, outcome = (request["messages"][0]["content"] for request in client.requests)
+    assert haystack == identity
+    assert haystack != outcome
+    assert outcome.startswith(haystack) and len(outcome) > len(haystack)
+
+
+def test_a_quote_lifted_from_the_echoed_list_is_a_fabrication():
+    """The line the echo adds is not text of the paper, and quoting it must fail.
+
+    This is the concrete failure the haystack choice prevents: the second call
+    is shown a summary of the first call's output, so a model that quotes that
+    summary produces a `source_quote` which is verbatim in its own prompt and
+    appears nowhere in the paper. Widening the haystack to the whole user
+    message — the obvious simplification — would verify it.
+    """
+    identities = identity_payload()
+    listed = extract_module._outcome_prompt("Title: t\n\nbody", identities["experiments"])
+    echoed = listed.splitlines()[-1]
+    assert "organism=" in echoed  # premise: this line is the echo, not the paper
+
+    outcomes = outcome_payload()
+    outcomes["experiments"][0]["mechanism"] = claim("mTOR inhibition", echoed)
+    client = StubClient(model_response(identities), model_response(outcomes))
+
+    with pytest.raises(RecordValidationError, match="not verbatim"):
+        extract_record(paper(), TEXT, client=client)
 
 
 def test_the_schema_document_is_loaded_once_per_process():
@@ -216,15 +273,14 @@ def test_the_schema_document_is_loaded_once_per_process():
 
 def test_paper_metadata_is_never_taken_from_the_model():
     """A model that volunteers bibliographic data cannot influence the record."""
-    client = StubClient(
-        model_response({"experiments": [experiment_payload()], "paper": {"doi": "10.0000/fake"}})
-    )
+    volunteered = {**identity_payload(), "paper": {"doi": "10.0000/fake"}}
+    client = StubClient(model_response(volunteered), model_response(outcome_payload()))
     record = extract_record(paper(), TEXT, client=client)
     assert record["paper"]["doi"] == "10.1038/nature08221"
 
 
 def test_extracted_from_is_stamped_from_the_caller_not_the_model():
-    client = StubClient(model_response(payload()))
+    client = StubClient(*extraction_responses())
     record = extract_record(paper(), TEXT, client=client, extracted_from=ABSTRACT)
 
     stamped = {c["extracted_from"] for c in claims(record)}
@@ -235,7 +291,7 @@ def test_extracted_from_is_stamped_from_the_caller_not_the_model():
 
 
 def test_full_text_provenance_is_stamped_when_that_is_what_was_read():
-    client = StubClient(model_response(payload()))
+    client = StubClient(*extraction_responses())
     record = extract_record(paper(), TEXT, client=client, extracted_from=FULL_TEXT)
     assert {c["extracted_from"] for c in claims(record)} == {FULL_TEXT}
 
@@ -260,14 +316,15 @@ def test_a_model_supplied_provenance_claim_raises(key):
     """The request schema forbids the key; if it appears, the response is wrong."""
     rogue = experiment_payload()
     rogue["organism"][key] = VOLUNTEERED[key]
-    client = StubClient(model_response(payload(rogue)))
+    client = StubClient(*extraction_responses(rogue))
 
     with pytest.raises(ModelResponseError, match=key):
         extract_record(paper(), TEXT, client=client)
 
 
 @pytest.mark.parametrize("key", sorted(CODE_ASSIGNED_EXPERIMENT_KEYS))
-def test_a_model_supplied_experiment_key_raises(key):
+@pytest.mark.parametrize("call", ["identity", "outcome"])
+def test_a_model_supplied_experiment_key_raises(key, call):
     """The same rule as `extracted_from`, for the keys that sit on an experiment.
 
     Both are pruned from the request schema, so a response carrying one did not
@@ -275,10 +332,16 @@ def test_a_model_supplied_experiment_key_raises(key):
     volunteered `notes` was persisted into the record: schema-valid, carrying no
     provenance, never scored, in the one field documented as human annotation. A
     volunteered `experiment_id` was overwritten and dropped without a word.
+
+    Once per call, because there are two responses to volunteer it in and the
+    guard has to be on both. The outcome half is the one where an unnoticed key
+    goes quietest: the merge copies the fields it knows about, so a `notes` the
+    model wrote there would be dropped without ever reaching the record or an
+    error message.
     """
-    rogue = experiment_payload()
-    rogue[key] = VOLUNTEERED[key]
-    client = StubClient(model_response(payload(rogue)))
+    identities, outcomes = identity_payload(), outcome_payload()
+    {"identity": identities, "outcome": outcomes}[call]["experiments"][0][key] = VOLUNTEERED[key]
+    client = StubClient(model_response(identities), model_response(outcomes))
 
     with pytest.raises(ModelResponseError, match=key):
         extract_record(paper(), TEXT, client=client)
@@ -298,15 +361,13 @@ def test_empty_text_is_refused_before_any_call():
 
 def test_a_multi_organism_paper_yields_one_record_per_organism():
     client = StubClient(
-        model_response(
-            payload(
+        *extraction_responses(
                 experiment_payload(organism="C. elegans", agent="spermidine"),
                 experiment_payload(organism="other", species="S. cerevisiae", agent="spermidine"),
                 experiment_payload(
                     organism="other", species="D. melanogaster", agent="spermidine"
                 ),
             )
-        )
     )
     record = extract_record(paper(first_author="Eisenberg", year=2009), TEXT, client=client)
 
@@ -320,12 +381,10 @@ def test_a_multi_organism_paper_yields_one_record_per_organism():
 
 def test_two_interventions_in_one_organism_yield_two_records():
     client = StubClient(
-        model_response(
-            payload(
+        *extraction_responses(
                 experiment_payload(agent="rapamycin"),
                 experiment_payload(agent="metformin"),
             )
-        )
     )
     record = extract_record(paper(), TEXT, client=client)
     assert [e["experiment_id"] for e in record["experiments"]] == [
@@ -344,9 +403,18 @@ def test_a_repeated_pair_takes_the_schema_s_numeric_suffix_not_the_gold_set_s_wo
     which convention wins is the human's call, not this test's:
     `test_generated_ids_match_gold_except_where_pinned` measures the gap, and
     NOTES.md (2026-08-12) records it as an open question for Phase 3.
+
+    The three arms differ by `sex`, which is the axis `harrison2009` splits
+    them on and which the id generator does not read — so they are three
+    distinguishable experiments taking the numeric tail, rather than three
+    copies of one that no assertion here or downstream could tell apart.
     """
     client = StubClient(
-        model_response(payload(experiment_payload(), experiment_payload(), experiment_payload()))
+        *extraction_responses(
+            experiment_payload(sex=claim("male")),
+            experiment_payload(sex=claim("female")),
+            experiment_payload(sex=claim("mixed")),
+        )
     )
     record = extract_record(paper(), TEXT, client=client)
 
@@ -360,7 +428,7 @@ def test_a_repeated_pair_takes_the_schema_s_numeric_suffix_not_the_gold_set_s_wo
 
 def agent_id(agent: str, *, first_author: str = "Strong", year: int = 2016) -> str:
     """Return the generated `experiment_id` for a one-experiment paper on `agent`."""
-    client = StubClient(model_response(payload(experiment_payload(agent=agent))))
+    client = StubClient(*extraction_responses(experiment_payload(agent=agent)))
     record = extract_record(paper(first_author=first_author, year=year), TEXT, client=client)
     VALIDATOR.validate(record)
     return record["experiments"][0]["experiment_id"]
@@ -710,9 +778,7 @@ def species_id(species: str, *, agent: str = "spermidine") -> str:
     the id at all — see `_organism_identity`.
     """
     client = StubClient(
-        model_response(
-            payload(experiment_payload(organism="other", species=species, agent=agent))
-        )
+        *extraction_responses(experiment_payload(organism="other", species=species, agent=agent))
     )
     record = extract_record(paper(first_author="Eisenberg", year=2009), TEXT, client=client)
     return record["experiments"][0]["experiment_id"]
@@ -854,9 +920,7 @@ def test_two_different_agents_that_slug_alike_are_refused_not_numbered():
     thing left saying they are not two arms of one experiment.
     """
     client = StubClient(
-        model_response(
-            payload(experiment_payload(agent="NAD+"), experiment_payload(agent="NAD"))
-        )
+        *extraction_responses(experiment_payload(agent="NAD+"), experiment_payload(agent="NAD"))
     )
 
     with pytest.raises(ExperimentIdCollisionError) as raised:
@@ -875,12 +939,10 @@ def test_two_species_that_slug_alike_are_refused_too():
     on the agent alone, because a merge on either half is the same merge.
     """
     client = StubClient(
-        model_response(
-            payload(
+        *extraction_responses(
                 experiment_payload(organism="other", species="S. cerevisiae", agent="spermidine"),
                 experiment_payload(organism="other", species="S cerevisiae", agent="spermidine"),
             )
-        )
     )
 
     with pytest.raises(ExperimentIdCollisionError, match="scerevisiae-spermidine"):
@@ -893,10 +955,15 @@ def test_the_guard_leaves_the_repeated_pair_alone():
     Male and female rapamycin arms in `data/gold/harrison2009.json` are the same
     (organism, agent) values twice over, and the guard must not read that as a
     collision — that is what separates it from a blanket ban on duplicate ids.
-    A third arm keeps counting.
+    A third arm keeps counting. The arms are spelled out as the gold record
+    spells them, by `sex`, which the id generator does not read.
     """
     client = StubClient(
-        model_response(payload(experiment_payload(), experiment_payload(), experiment_payload()))
+        *extraction_responses(
+            experiment_payload(sex=claim("male")),
+            experiment_payload(sex=claim("female")),
+            experiment_payload(sex=claim("mixed")),
+        )
     )
     record = extract_record(paper(), TEXT, client=client)
 
@@ -912,16 +979,16 @@ def test_an_agent_named_like_a_numeric_tail_cannot_take_that_tail():
 
     Two rapamycin arms and a compound called `rapamycin-2` in one paper compete
     for `…-rapamycin-2`. Whichever gets there first, the other must not be given
-    an id a reader would attribute to it.
+    an id a reader would attribute to it. The two rapamycin arms are the male
+    and female arms of one intervention, which is the shape a repeated pair
+    actually has; `sex` is no part of the id, so the competition is unchanged.
     """
     client = StubClient(
-        model_response(
-            payload(
-                experiment_payload(agent="rapamycin"),
+        *extraction_responses(
+                experiment_payload(agent="rapamycin", sex=claim("male")),
                 experiment_payload(agent="rapamycin-2"),
-                experiment_payload(agent="rapamycin"),
+                experiment_payload(agent="rapamycin", sex=claim("female")),
             )
-        )
     )
 
     with pytest.raises(ExperimentIdCollisionError, match="rapamycin-2"):
@@ -945,7 +1012,7 @@ def test_an_author_whose_name_has_no_ascii_reading_is_refused_not_dropped():
 
 def test_the_author_guard_is_not_the_missing_author_guard():
     """Two different failures, two different messages, both loud."""
-    client = StubClient(model_response(payload()))
+    client = StubClient(*extraction_responses())
     with pytest.raises(ExtractError, match="experiment_id convention"):
         extract_record(paper(first_author=None), TEXT, client=client)
 
@@ -997,11 +1064,19 @@ def test_generated_ids_match_gold_except_where_pinned(path):
 
 
 def test_not_reported_survives_extraction_unembellished():
-    """The honesty case: absent data stays absent and carries no invented quote."""
+    """The honesty case: absent data stays absent and carries no invented quote.
+
+    Every absence here is stated by this test rather than inherited from the
+    fixture, `mechanism` included: `experiment_payload` reports a mechanism by
+    default, because an outcome half that is constant across experiments is
+    what let the two-call join go untested. An absence a test asserts should be
+    one it asked for.
+    """
     sparse = experiment_payload()
+    sparse["mechanism"] = claim(None)
     sparse["lifespan_effect"]["median_change_pct"] = claim(None)
     sparse["lifespan_effect"]["p_value"] = claim(None)
-    client = StubClient(model_response(payload(sparse)))
+    client = StubClient(*extraction_responses(sparse))
 
     record = extract_record(paper(), TEXT, client=client)
     VALIDATOR.validate(record)
@@ -1023,7 +1098,7 @@ def test_a_quote_attached_to_an_absent_value_raises():
         "source_quote": "Male and female mice were used.",
         "confidence": "high",
     }
-    client = StubClient(model_response(payload(dishonest)))
+    client = StubClient(*extraction_responses(dishonest))
 
     with pytest.raises(RecordValidationError, match="nothing to quote"):
         extract_record(paper(), TEXT, client=client)
@@ -1036,7 +1111,7 @@ def test_a_value_without_a_quote_raises():
         "source_quote": None,
         "confidence": "low",
     }
-    client = StubClient(model_response(payload(unsupported)))
+    client = StubClient(*extraction_responses(unsupported))
 
     with pytest.raises(RecordValidationError, match="no source_quote"):
         extract_record(paper(), TEXT, client=client)
@@ -1057,7 +1132,7 @@ def test_a_fabricated_quote_is_rejected():
     invented["strain"] = claim(
         "UM-HET3", "Naked mole rats were housed in colonies at 30 degrees."
     )
-    client = StubClient(model_response(payload(invented)))
+    client = StubClient(*extraction_responses(invented))
 
     with pytest.raises(RecordValidationError) as raised:
         extract_record(paper(), TEXT, client=client)
@@ -1074,7 +1149,7 @@ def test_a_fabricated_quote_under_a_number_is_rejected_too():
     invented["lifespan_effect"]["median_change_pct"] = claim(
         99.0, "Lifespan doubled in every cohort we examined."
     )
-    client = StubClient(model_response(payload(invented)))
+    client = StubClient(*extraction_responses(invented))
 
     with pytest.raises(RecordValidationError, match="median_change_pct"):
         extract_record(paper(), TEXT, client=client)
@@ -1088,7 +1163,7 @@ def test_a_quote_wrapped_across_lines_is_accepted():
     """
     wrapped = experiment_payload()
     wrapped["strain"] = claim("UM-HET3", QUOTE.replace(" ", "\n   ", 1))
-    client = StubClient(model_response(payload(wrapped)))
+    client = StubClient(*extraction_responses(wrapped))
 
     record = extract_record(paper(), TEXT, client=client)
     VALIDATOR.validate(record)
@@ -1105,7 +1180,7 @@ def test_a_quote_taken_from_the_title_is_accepted():
     assert TITLE not in TEXT  # premise: this quote can only have come from the title
     from_title = experiment_payload()
     from_title["intervention"]["agent"] = claim("rapamycin", TITLE)
-    client = StubClient(model_response(payload(from_title)))
+    client = StubClient(*extraction_responses(from_title))
 
     record = extract_record(paper(), TEXT, client=client)
 
@@ -1117,7 +1192,7 @@ def test_a_quote_from_neither_the_title_nor_the_text_is_still_a_fabrication():
     """Widening the haystack to the prompt must not widen it to anything else."""
     invented = experiment_payload()
     invented["intervention"]["agent"] = claim("rapamycin", "Rapamycin fed early in life")
-    client = StubClient(model_response(payload(invented)))
+    client = StubClient(*extraction_responses(invented))
 
     with pytest.raises(RecordValidationError, match="not verbatim"):
         extract_record(paper(), TEXT, client=client)
@@ -1127,7 +1202,7 @@ def test_a_quote_differing_by_one_character_is_not_whitespace_forgiven():
     """The collapse must not become a general fuzzy match: 14% is not 41%."""
     altered = experiment_payload()
     altered["strain"] = claim("UM-HET3", QUOTE.replace("14%", "41%"))
-    client = StubClient(model_response(payload(altered)))
+    client = StubClient(*extraction_responses(altered))
 
     with pytest.raises(RecordValidationError, match="not verbatim"):
         extract_record(paper(), TEXT, client=client)
@@ -1137,7 +1212,7 @@ def test_a_value_the_api_subset_cannot_constrain_is_still_validated():
     """p_value's pattern survives only in the real schema; check it is enforced."""
     malformed = experiment_payload()
     malformed["lifespan_effect"]["p_value"] = claim("not significant")
-    client = StubClient(model_response(payload(malformed)))
+    client = StubClient(*extraction_responses(malformed))
 
     with pytest.raises(RecordValidationError, match="p_value"):
         extract_record(paper(), TEXT, client=client)
@@ -1145,27 +1220,29 @@ def test_a_value_the_api_subset_cannot_constrain_is_still_validated():
 
 def test_an_out_of_vocabulary_value_is_rejected():
     invented = experiment_payload(direction="slight_increase")
-    client = StubClient(model_response(payload(invented)))
+    client = StubClient(*extraction_responses(invented))
 
     with pytest.raises(RecordValidationError, match="direction"):
         extract_record(paper(), TEXT, client=client)
 
 
 def test_a_fenced_payload_is_repaired_without_a_retry():
-    body = "```json\n" + json.dumps(payload()) + "\n```"
-    client = StubClient(model_response(body))
+    body = "```json\n" + json.dumps(identity_payload()) + "\n```"
+    client = StubClient(model_response(body), model_response(outcome_payload()))
 
     record = extract_record(paper(), TEXT, client=client)
     VALIDATOR.validate(record)
-    assert len(client.requests) == 1
+    # Two: the repair spent no retry, so these are the two calls extraction makes.
+    assert len(client.requests) == 2
 
 
 def test_an_unparseable_payload_is_retried_once_then_succeeds():
-    client = StubClient(model_response("I could not find any experiments."), model_response(payload()))
+    client = StubClient(model_response("I could not find any experiments."), *extraction_responses())
     record = extract_record(paper(), TEXT, client=client)
 
     VALIDATOR.validate(record)
-    assert len(client.requests) == 2
+    # The retried first call, then the second call.
+    assert len(client.requests) == 3
 
 
 def test_two_unparseable_payloads_raise_and_produce_no_record():
@@ -1186,15 +1263,436 @@ def test_a_payload_without_experiments_raises():
         extract_record(paper(), TEXT, client=client)
 
 
+# --- the join between the two calls ---
+#
+# The second call returns one outcome per experiment the first call identified,
+# each naming its experiment by index. Everything the merge can be handed that
+# is not a one-to-one correspondence has a test here, because every one of them
+# has a silent reading: a dropped outcome is a record with no result, a
+# duplicated index is two experiments sharing one result, and an index naming
+# no experiment is a result thrown away. None of them is visible in the
+# assembled record — it validates either way — so the merge is the only place
+# they can be caught.
+
+
+def three_experiments() -> list[dict[str, Any]]:
+    """Three distinguishable experiments, so an index can be wrong in every way."""
+    return [
+        experiment_payload(agent="rapamycin"),
+        experiment_payload(agent="metformin"),
+        experiment_payload(agent="acarbose"),
+    ]
+
+
+def joined(*, outcomes: list[dict[str, Any]]) -> StubClient:
+    """A client answering with three experiments and the given outcome entries."""
+    experiments = three_experiments()
+    return StubClient(
+        model_response(identity_payload(*experiments)),
+        model_response({"experiments": outcomes}),
+    )
+
+
+def outcome_entries() -> list[dict[str, Any]]:
+    """The three well-formed outcomes for `three_experiments`."""
+    return outcome_payload(*three_experiments())["experiments"]
+
+
+def outcome_values(experiment: dict[str, Any]) -> tuple[Any, ...]:
+    """Return the outcome half of an experiment as the values a record carries.
+
+    Enough of it to say *which* experiment's outcome this is — which is the
+    only question the join tests below ask.
+    """
+    return (
+        experiment["mechanism"]["value"],
+        experiment["lifespan_effect"]["direction"]["value"],
+        experiment["lifespan_effect"]["median_change_pct"]["value"],
+    )
+
+
+def test_the_three_experiments_have_three_distinguishable_outcomes():
+    """Premise of both join tests: alike outcomes would make either of them vacuous.
+
+    This is the fixture condition that was missing. `experiment_payload`'s
+    outcome half used to be byte-identical for every experiment any test built,
+    so an outcome joined to the wrong experiment produced a record identical to
+    the right one and no assertion anywhere could have caught it.
+    """
+    values = [outcome_values(experiment) for experiment in three_experiments()]
+
+    assert len(set(values)) == 3
+    # And on `mechanism` alone, which is the half of the derivation that is
+    # injective in the experiment's identity rather than spread across an enum.
+    assert len({mechanism for mechanism, _, _ in values}) == 3
+
+
+# --- the fixture's own premises: which experiments it can tell apart ---
+#
+# `three_experiments()` varies `agent`, and the tests above rest on the three
+# outcomes it produces being distinct. That held for `agent` under the old
+# derivation too, which is why the hole below stayed dormant: the derivation
+# read three arguments, so nine of the eleven experiments a test could build
+# collapsed onto one outcome half — including the male/female and low/high-dose
+# pairs the gold set uses to separate experiments within a paper. The three
+# tests here pin the derivation itself rather than one fixture's use of it.
+
+
+def dosed(dose: str) -> dict[str, Any]:
+    """The default intervention at `dose`, the axis `martinmontalvo2013` splits on."""
+    intervention = experiment_payload()["intervention"]
+    intervention["dose"] = claim(dose)
+    return intervention
+
+
+@pytest.mark.parametrize("name", sorted(IDENTITY_PROPERTIES))
+def test_varying_any_identity_property_alone_changes_the_outcome_half(name):
+    """Every axis reaches the derivation, and the list of axes is the schema's.
+
+    Parametrized over `IDENTITY_PROPERTIES` rather than over the derivation's
+    own reading of it, so a property the derivation stops reading fails here
+    instead of quietly producing two experiments a join test cannot tell apart.
+
+    A property a later schema version *adds* is not caught here — measured, not
+    assumed: this test supplies the property itself as an override, so it
+    varies and the assertion holds. What the addition does now is fail in the
+    tests that actually depend on the new property, with the rest of the suite
+    running; it used to abort collection outright, because the derivation
+    subscripted the payload and a property no fixture built raised `KeyError`
+    before a single test ran.
+    """
+    varied = experiment_payload(**{name: claim(f"varied {name}")})
+    base = experiment_payload()
+
+    assert outcome_values(varied) != outcome_values(base)
+    # On `mechanism` alone as well, which is the injective half of the
+    # derivation. `direction` and `median_change_pct` come off a CRC and can
+    # coincide for two different experiments without anything being wrong, so
+    # a difference in the tuple is not on its own evidence of injectivity.
+    assert varied["mechanism"]["value"] != base["mechanism"]["value"]
+
+
+@pytest.mark.parametrize(
+    ("axis", "left", "right"),
+    [
+        ("sex", {"sex": claim("male")}, {"sex": claim("female")}),
+        ("dose", {"intervention": dosed("4 ppm")}, {"intervention": dosed("100 ppm")}),
+        (
+            "organism or species",
+            {"organism": "M. musculus"},
+            {"organism": "other", "species": "M. musculus"},
+        ),
+    ],
+)
+def test_the_axes_the_gold_set_splits_experiments_on_are_distinguishable(axis, left, right):
+    """The three the old derivation collapsed, named for what they cost.
+
+    `harrison2009` and `miller2011` split rapamycin by sex; `martinmontalvo2013`
+    splits metformin by dose; `eisenberg2009` reaches its species through
+    `organism: "other"`, so `organism="M. musculus"` and `organism="other"` with
+    that species are two spellings the derivation must not merge. A future join
+    test written on any of these — the natural axes to reach for, being the
+    project's own — landed in the collision set and was vacuous.
+    """
+    one, other = experiment_payload(**left), experiment_payload(**right)
+
+    assert outcome_values(one) != outcome_values(other), axis
+    assert one["mechanism"]["value"] != other["mechanism"]["value"], axis
+
+
+def test_a_fixture_whose_experiments_share_an_outcome_half_is_refused():
+    """The guard that makes a vacuous join fixture unwritable rather than unwritten.
+
+    Two experiments with equal outcome halves are indistinguishable to every
+    assertion downstream, so `outcome_payload` refuses them at the point the
+    fixture is built. It fires on any multi-experiment fixture, which is the
+    difference between an instrument and a note in a docstring.
+    """
+    with pytest.raises(AssertionError, match="share an outcome half"):
+        outcome_payload(experiment_payload(), experiment_payload())
+
+    # The ordinary single-experiment fixture is untouched: there is nothing to
+    # tell apart, and most tests in this suite build exactly one experiment.
+    assert len(outcome_payload(experiment_payload())["experiments"]) == 1
+
+
+def test_the_well_formed_join_is_the_premise_of_the_failure_tests_below():
+    """Three experiments, three outcomes, one each: this is what must succeed.
+
+    Without it the failure tests below could all be passing for a reason that
+    has nothing to do with the fault they name. The name carries no count of
+    them: it said five while there were eight, and a number in a test's name
+    goes stale on the next test added below it.
+    """
+    record = extract_record(paper(), TEXT, client=joined(outcomes=outcome_entries()))
+
+    VALIDATOR.validate(record)
+    assert [e["intervention"]["agent"]["value"] for e in record["experiments"]] == [
+        "rapamycin",
+        "metformin",
+        "acarbose",
+    ]
+    # Each experiment carries its *own* outcome, not merely some outcome. A
+    # merge that reversed or rotated the correspondence would satisfy the
+    # weaker check, and satisfy the schema and both provenance invariants too.
+    assert [outcome_values(e) for e in record["experiments"]] == [
+        outcome_values(e) for e in three_experiments()
+    ]
+    # And nothing of the transport survives into the record.
+    assert not any(EXPERIMENT_INDEX in e for e in record["experiments"])
+
+
+@pytest.mark.parametrize("order", [(2, 0, 1), (2, 1, 0), (1, 2, 0)])
+def test_outcomes_returned_out_of_order_still_land_on_their_own_experiments(order):
+    """The join is `experiment_index`, and this is the only test that can see it.
+
+    A reordered response is a *legal* response: nothing asks the model to return
+    its outcomes in list order, only that each one names the experiment it
+    belongs to, and `OUTCOME_SYSTEM_PROMPT` promises the code will honour that.
+    It is also the one shape where a join by index and a join by position
+    disagree — in list order the two are the same function.
+
+    Under a positional join every outcome here attaches to the wrong
+    experiment, and nothing downstream notices: the record validates, satisfies
+    `check_provenance`, and passes `check_quotes_verbatim`, because each quote
+    is a real sentence of this same paper wherever it lands. Rapamycin's result
+    filed under metformin, with a genuine quote behind it. The three orders are
+    a rotation each way and a full reversal, so a merge that shifts or reverses
+    the correspondence fails here as loudly as one that ignores the index.
+    """
+    entries = outcome_entries()
+    shuffled = [entries[position] for position in order]
+
+    record = extract_record(paper(), TEXT, client=joined(outcomes=shuffled))
+
+    VALIDATOR.validate(record)
+    assert [outcome_values(e) for e in record["experiments"]] == [
+        outcome_values(e) for e in three_experiments()
+    ]
+
+
+def test_a_dropped_outcome_raises_rather_than_leaving_an_experiment_resultless():
+    """Two outcomes for three experiments. The third would have no result at all."""
+    dropped = outcome_entries()[:-1]
+
+    with pytest.raises(ModelResponseError, match=r"\[2\] have no outcome"):
+        extract_record(paper(), TEXT, client=joined(outcomes=dropped))
+
+
+def test_a_duplicated_index_raises_rather_than_merging_two_results_into_one():
+    """Two outcomes claiming experiment 0, and experiment 2 silently left bare."""
+    duplicated = outcome_entries()
+    duplicated[1][EXPERIMENT_INDEX] = 0
+
+    with pytest.raises(ModelResponseError, match=r"\[0\] appear more than once"):
+        extract_record(paper(), TEXT, client=joined(outcomes=duplicated))
+
+
+def test_more_outcomes_than_experiments_raises():
+    """A fourth outcome is a result for an experiment the first call did not find.
+
+    Whether it duplicates an index or names a fourth experiment, it is a result
+    with nowhere to go, and dropping it would lose a finding the model reported.
+    """
+    extra = outcome_entries()
+    extra.append({**outcome_entries()[0], EXPERIMENT_INDEX: 0})
+
+    with pytest.raises(ModelResponseError, match="do not correspond one-to-one"):
+        extract_record(paper(), TEXT, client=joined(outcomes=extra))
+
+
+@pytest.mark.parametrize("index", [3, 7, -1])
+def test_an_index_naming_no_experiment_raises(index):
+    """Including -1, which Python would happily read as the last experiment."""
+    out_of_range = outcome_entries()
+    out_of_range[2][EXPERIMENT_INDEX] = index
+
+    with pytest.raises(ModelResponseError, match=rf"\[{index}\] name no experiment"):
+        extract_record(paper(), TEXT, client=joined(outcomes=out_of_range))
+
+
+@pytest.mark.parametrize("name", sorted(OUTCOME_PROPERTIES))
+def test_an_outcome_missing_a_claim_raises(name):
+    """The request schema requires every field of it; most are optional in the record.
+
+    So an omission validates perfectly well and lands as an experiment with no
+    `mechanism` key at all — which is not the same claim as `mechanism: null`,
+    and is indistinguishable downstream from a paper that reports no mechanism.
+    """
+    incomplete = outcome_entries()
+    del incomplete[1][name]
+
+    with pytest.raises(ModelResponseError, match=f"omitted \\['{name}'\\]"):
+        extract_record(paper(), TEXT, client=joined(outcomes=incomplete))
+
+
+@pytest.mark.parametrize("name", sorted(IDENTITY_PROPERTIES))
+def test_an_identified_experiment_missing_a_claim_raises(name):
+    """The same rule on the first call, where `sex` is the one that matters.
+
+    `sex: not_reported` is a claim the schema has a word for and PLAN.md names
+    as a field to watch; a `sex` key that never arrived is not that claim, and
+    nothing later can tell them apart.
+    """
+    experiments = three_experiments()
+    identities = identity_payload(*experiments)
+    del identities["experiments"][0][name]
+    client = StubClient(model_response(identities), model_response({"experiments": []}))
+
+    with pytest.raises(ModelResponseError, match=f"omitted \\['{name}'\\]"):
+        extract_record(paper(), TEXT, client=client)
+
+
+@pytest.mark.parametrize("index", [None, "0", 1.0, True, [0]])
+def test_an_index_that_is_not_an_integer_raises(index):
+    """`True` is the pointed one: in Python it is an `int`, and it is index 1.
+
+    A JSON `true` would attach a set of results to the second experiment with
+    every check downstream satisfied.
+    """
+    malformed = outcome_entries()
+    malformed[0][EXPERIMENT_INDEX] = index
+
+    with pytest.raises(ModelResponseError, match="not an integer"):
+        extract_record(paper(), TEXT, client=joined(outcomes=malformed))
+
+
+def test_an_outcome_with_no_index_at_all_raises():
+    orphan = outcome_entries()
+    del orphan[0][EXPERIMENT_INDEX]
+
+    with pytest.raises(ModelResponseError, match="not an integer"):
+        extract_record(paper(), TEXT, client=joined(outcomes=orphan))
+
+
+def test_an_unknown_key_on_an_outcome_raises_rather_than_being_dropped():
+    """The merge copies the fields it knows; anything else would vanish silently.
+
+    On an identified experiment an unexpected key survives into the record and
+    `validate_record` refuses it, because every object in the real schema is
+    closed. An outcome has no such backstop — it is read for two fields and an
+    index — so it is checked here.
+    """
+    chatty = outcome_entries()
+    chatty[0]["lifespan_effect_summary"] = "increase"
+
+    with pytest.raises(ModelResponseError, match="lifespan_effect_summary"):
+        extract_record(paper(), TEXT, client=joined(outcomes=chatty))
+
+
+@pytest.mark.parametrize("name", sorted(OUTCOME_PROPERTIES))
+def test_an_outcome_property_volunteered_on_the_identity_half_raises(name):
+    """The first call is not asked for these, and answering with one is refused.
+
+    `mechanism` and `lifespan_effect` are real `experiment` properties, so the
+    two backstops that catch every other unasked-for key both miss them: they
+    are not code-assigned, so nothing prunes them, and they validate perfectly
+    well against the real schema, so `validate_record` would take them. Before
+    this guard they reached `_merge_outcomes`, which reported them as an
+    overlap between `IDENTITY_PROPERTIES` and `OUTCOME_PROPERTIES` — sending
+    the operator to inspect two constants that are correct, in a bare
+    `ExtractError` carrying no excerpt of the response that actually caused it.
+    """
+    experiments = three_experiments()
+    identities = identity_payload(*experiments)
+    identities["experiments"][0][name] = experiments[0][name]
+    client = StubClient(model_response(identities))
+
+    with pytest.raises(ModelResponseError) as caught:
+        extract_record(paper(), TEXT, client=client)
+
+    message = str(caught.value)
+    assert f"model supplied ['{name}']" in message
+    assert "on an identified experiment" in message
+    assert "payload excerpt" in message
+    # It names the model's answer, not the partition — the constants are fine.
+    assert "OUTCOME_PROPERTIES" not in message
+    # And it costs one call: the second is never made for a response already
+    # known to be wrong.
+    assert len(client.requests) == 1
+
+
+def test_an_invented_key_on_the_identity_half_raises_before_the_second_call():
+    """The other shape: a key that is no property of the schema at all.
+
+    This one would have survived into the assembled record and been refused by
+    `validate_record` — after the second call had been paid for, and reported
+    as a schema failure rather than as a model that answered off-schema.
+    """
+    identities = identity_payload()
+    identities["experiments"][0]["confidence_overall"] = "high"
+    client = StubClient(model_response(identities))
+
+    with pytest.raises(ModelResponseError, match=r"model supplied \['confidence_overall'\]"):
+        extract_record(paper(), TEXT, client=client)
+    assert len(client.requests) == 1
+
+
+def test_a_failed_second_call_produces_no_record_at_all():
+    """The no-partial-record guarantee, at the seam the split introduced.
+
+    The first call succeeded and was paid for; the second did not parse. There
+    is no early return in `extract_record` and nothing writes anything, so what
+    the caller gets is the exception and no record — the paper stays pending
+    and the next run attempts it whole.
+    """
+    client = StubClient(
+        model_response(identity_payload()),
+        model_response("the paper does not report lifespan"),
+        model_response("still not JSON"),  # ... and its one retry
+    )
+
+    with pytest.raises(ModelResponseError, match="2 attempt"):
+        extract_record(paper(), TEXT, client=client)
+    assert len(client.requests) == 3
+
+
+def test_the_second_call_is_never_made_when_the_first_one_fails():
+    """Nothing is spent reporting outcomes for experiments that were never identified."""
+    client = StubClient(model_response({"experiments": []}))
+
+    with pytest.raises(ExtractError, match="returned no experiments"):
+        extract_record(paper(), TEXT, client=client)
+    assert len(client.requests) == 1
+
+
+def test_a_colliding_identifier_is_refused_before_the_second_call_is_paid_for():
+    """Two agents that slug alike refuse the paper, and the refusal is free.
+
+    The id is built from the first call's fields alone, so a paper that cannot
+    be named is known to be unusable before the second call is made.
+    """
+    client = StubClient(
+        model_response(
+            identity_payload(
+                experiment_payload(agent="NAD+"),
+                experiment_payload(agent="NAD"),
+            )
+        )
+    )
+
+    with pytest.raises(ExperimentIdCollisionError):
+        extract_record(paper(), TEXT, client=client)
+    assert len(client.requests) == 1
+
+
 @pytest.mark.parametrize("missing", ["doi", "year"])
 def test_missing_paper_identity_raises_rather_than_being_invented(missing):
-    client = StubClient(model_response(payload()))
+    """And before either call, because it is knowable from the ingest row alone.
+
+    The record's identity comes from `paper`, not from the prose, so a row that
+    cannot supply it can never produce a record however good the extraction is.
+    Checking it first makes that free instead of two calls to the expensive
+    model.
+    """
+    client = StubClient(*extraction_responses())
     with pytest.raises(ExtractError, match=f"paper.{missing} is missing"):
         extract_record(paper(**{missing: None}), TEXT, client=client)
+    assert client.requests == []
 
 
 def test_a_paper_with_no_first_author_cannot_be_named_and_says_so():
-    client = StubClient(model_response(payload()))
+    client = StubClient(*extraction_responses())
     with pytest.raises(ExtractError, match="experiment_id convention"):
         extract_record(paper(first_author=None), TEXT, client=client)
 
@@ -1202,7 +1700,7 @@ def test_a_paper_with_no_first_author_cannot_be_named_and_says_so():
 def test_an_experiment_with_no_agent_value_raises():
     nameless = experiment_payload()
     nameless["intervention"]["agent"] = claim(None)
-    client = StubClient(model_response(payload(nameless)))
+    client = StubClient(*extraction_responses(nameless))
 
     with pytest.raises(ModelResponseError, match="intervention.agent.value"):
         extract_record(paper(), TEXT, client=client)
@@ -1210,7 +1708,7 @@ def test_an_experiment_with_no_agent_value_raises():
 
 def test_an_other_organism_without_a_species_still_gets_an_identifier():
     unnamed = experiment_payload(organism="other", species=None)
-    client = StubClient(model_response(payload(unnamed)))
+    client = StubClient(*extraction_responses(unnamed))
 
     record = extract_record(paper(), TEXT, client=client)
     VALIDATOR.validate(record)

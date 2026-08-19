@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import os
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -36,7 +37,16 @@ from extract.model import API_KEY_ENV
 from extract.schema import SCHEMA_PATH
 from ingest.db import store_papers
 from ingest.models import RawPaper
-from tests.conftest import StubClient, claim, claims, experiment_payload, model_response
+from tests.conftest import (
+    StubClient,
+    claim,
+    claims,
+    experiment_payload,
+    extraction_responses,
+    identity_payload,
+    model_response,
+    outcome_payload,
+)
 
 VALIDATOR = Draft202012Validator(json.loads(SCHEMA_PATH.read_text()))
 VERSION = json.loads(SCHEMA_PATH.read_text())["x-schema-version"]
@@ -51,28 +61,32 @@ NEGATIVE = {
     "reason": "Review article; no experiment of its own.",
     "confidence": "high",
 }
-RECORD = {"experiments": [experiment_payload()]}
+# The two responses one extraction consumes, in order: extraction asks the
+# expensive model once for the experiments as designed and once for what they
+# found, so every paper that passes the gate here costs three responses.
+RECORD_RESPONSES = extraction_responses()
 
 # A lone surrogate: `json.loads` accepts the `\udbff` escape and hands back a
 # Python `str`, jsonschema calls it a perfectly good string, and no UTF-8
 # encoder will take it. `model_response` serialises with `ensure_ascii=True`,
 # so what the stub replays is the plain ASCII escape a model would actually
 # emit.
-SURROGATE_RECORD = {
-    "experiments": [experiment_payload(mechanism=claim("mTOR inhibition \udbff"))]
-}
+SURROGATE_RESPONSES = extraction_responses(
+    experiment_payload(mechanism=claim("mTOR inhibition \udbff"))
+)
 
 
 def nan_body() -> str:
-    """The response text for a record whose one number is a bare `NaN` token.
+    """The second call's response text, with one number as a bare `NaN` token.
 
     Built by serialising an actual `float('nan')` with `json.dumps`'s default
     `allow_nan=True`, so the token in the payload is the one Python itself
-    writes rather than a string a test author typed.
+    writes rather than a string a test author typed. It goes in the outcome
+    half because that is the half the percentages are asked for in.
     """
     payload = experiment_payload()
     payload["lifespan_effect"]["median_change_pct"] = claim(float("nan"))
-    return json.dumps({"experiments": [payload]})
+    return json.dumps(outcome_payload(payload))
 
 
 def overloaded(status: int = 529) -> anthropic.APIStatusError:
@@ -103,7 +117,7 @@ def paper(pmid: str = "19587680", **overrides: Any) -> RawPaper:
 
 def test_a_passing_paper_is_extracted_and_written(engine, tmp_path):
     store_papers(engine, [paper()])
-    client = StubClient(model_response(POSITIVE), model_response(RECORD))
+    client = StubClient(model_response(POSITIVE), *RECORD_RESPONSES)
 
     summary = run_extraction(engine, client=client, limit=20, out_root=tmp_path)
 
@@ -130,21 +144,25 @@ def test_a_written_record_says_it_came_from_the_abstract_it_was_shown(engine, tm
     """
     stored = paper()
     store_papers(engine, [stored])
-    client = StubClient(model_response(POSITIVE), model_response(RECORD))
+    client = StubClient(model_response(POSITIVE), *RECORD_RESPONSES)
 
     run_extraction(engine, client=client, limit=20, out_root=tmp_path)
 
     written = json.loads(record_path(tmp_path / VERSION, stored).read_text())
     assert {c["extracted_from"] for c in claims(written)} == {"abstract"}
 
-    # Exactly two calls, and both were shown the same thing: `Title:` carries
-    # the title and the body is the abstract. Swap the two and every quote in
-    # the record is checked against the wrong text, while the file still claims
-    # abstract provenance.
+    # Exactly three calls — the gate, then extraction's two — and every one of
+    # them was shown the same paper: `Title:` carries the title and the body is
+    # the abstract. Swap the two and every quote in the record is checked
+    # against the wrong text, while the file still claims abstract provenance.
+    # The second extraction call is shown that and then more, because it is
+    # also given the list of experiments the first one found; what matters here
+    # is that the paper it is reading is this paper's abstract.
     shown = f"Title: {stored.title}\n\n{stored.abstract}"
-    gate, extraction = client.requests
+    gate, identity, outcome = client.requests
     assert gate["messages"] == [{"role": "user", "content": shown}]
-    assert extraction["messages"] == [{"role": "user", "content": shown}]
+    assert identity["messages"] == [{"role": "user", "content": shown}]
+    assert outcome["messages"][0]["content"].startswith(shown)
 
 
 def test_a_screened_out_paper_never_reaches_the_expensive_model(engine, tmp_path, capsys):
@@ -163,7 +181,7 @@ def test_a_second_run_re_extracts_nothing(engine, tmp_path):
     store_papers(engine, [paper()])
     run_extraction(
         engine,
-        client=StubClient(model_response(POSITIVE), model_response(RECORD)),
+        client=StubClient(model_response(POSITIVE), *RECORD_RESPONSES),
         limit=20,
         out_root=tmp_path,
     )
@@ -185,7 +203,7 @@ def test_a_new_schema_version_is_a_different_output_directory(engine, tmp_path):
 
     summary = run_extraction(
         engine,
-        client=StubClient(model_response(POSITIVE), model_response(RECORD)),
+        client=StubClient(model_response(POSITIVE), *RECORD_RESPONSES),
         limit=20,
         out_root=tmp_path,
     )
@@ -201,7 +219,7 @@ def test_a_failure_is_loud_counted_and_does_not_strand_the_other_papers(
         model_response("not JSON"),  # first paper: unparseable
         model_response("still not JSON"),  # ... and its one retry
         model_response(POSITIVE),
-        model_response(RECORD),  # second paper: fine
+        *RECORD_RESPONSES,  # second paper: fine
     )
 
     summary = run_extraction(engine, client=client, limit=20, out_root=tmp_path)
@@ -211,6 +229,37 @@ def test_a_failure_is_loud_counted_and_does_not_strand_the_other_papers(
     assert "FAIL" in captured.err
     assert "not JSON" in captured.err
     assert len(list((tmp_path / VERSION).glob("*.json"))) == 1
+
+
+def test_a_paper_whose_second_call_fails_writes_nothing_and_stays_pending(
+    engine, tmp_path, capsys
+):
+    """Extraction is two calls now, and half a record must never reach the disk.
+
+    The first call succeeded and was paid for; the second was overloaded. A
+    record file's existence is the only "already extracted" marker there is, so
+    a partial write here would be permanent — the paper would be skipped by
+    every later run and Phase 3 would score a record with no results in it.
+    The guarantee is structural rather than cleaned up after: `extract_record`
+    has no early return, so nothing was ever handed to the writer.
+    """
+    store_papers(engine, [paper()])
+    client = StubClient(
+        model_response(POSITIVE),
+        model_response(identity_payload()),
+        overloaded(),  # the second extraction call
+    )
+
+    summary = run_extraction(engine, client=client, limit=20, out_root=tmp_path)
+
+    assert (summary.considered, summary.extracted, summary.failed) == (1, 0, 1)
+    assert "529" in capsys.readouterr().err
+    assert list((tmp_path / VERSION).iterdir()) == []
+
+    # Still pending: the next run attempts the whole paper again.
+    again = StubClient(model_response(POSITIVE), *RECORD_RESPONSES)
+    second = run_extraction(engine, client=again, limit=20, out_root=tmp_path)
+    assert (second.considered, second.already_extracted, second.extracted) == (1, 0, 1)
 
 
 def test_an_api_error_on_one_paper_does_not_strand_the_next(engine, tmp_path, capsys):
@@ -224,7 +273,7 @@ def test_an_api_error_on_one_paper_does_not_strand_the_next(engine, tmp_path, ca
     client = StubClient(
         overloaded(),  # first paper: the API is overloaded at the gate
         model_response(POSITIVE),
-        model_response(RECORD),  # second paper: fine
+        *RECORD_RESPONSES,  # second paper: fine
     )
 
     summary = run_extraction(engine, client=client, limit=20, out_root=tmp_path)
@@ -306,9 +355,9 @@ def test_the_limit_counts_attempts_not_rows(engine, tmp_path):
     # fails the test rather than quietly succeeding.
     client = StubClient(
         model_response(POSITIVE),
-        model_response(RECORD),
+        *RECORD_RESPONSES,
         model_response(POSITIVE),
-        model_response(RECORD),
+        *RECORD_RESPONSES,
     )
 
     summary = run_extraction(engine, client=client, limit=2, out_root=tmp_path)
@@ -426,7 +475,7 @@ def test_a_run_into_the_gold_set_writes_nothing_and_calls_no_model(
     gold.mkdir(parents=True)
     monkeypatch.setattr("extract.cli.GOLD_ROOT", gold)
     store_papers(engine, [paper()])
-    client = StubClient(model_response(POSITIVE), model_response(RECORD))
+    client = StubClient(model_response(POSITIVE), *RECORD_RESPONSES)
 
     with pytest.raises(OutputPathError, match="gold set"):
         run_extraction(engine, client=client, limit=20, out_root=gold / "records")
@@ -470,7 +519,7 @@ def test_an_interrupted_write_leaves_nothing_a_later_run_would_skip(
         raise KeyboardInterrupt
 
     monkeypatch.setattr("extract.cli.os.replace", interrupt)
-    client = StubClient(model_response(POSITIVE), model_response(RECORD))
+    client = StubClient(model_response(POSITIVE), *RECORD_RESPONSES)
 
     with pytest.raises(KeyboardInterrupt):
         run_extraction(engine, client=client, limit=20, out_root=tmp_path)
@@ -494,9 +543,9 @@ def test_an_unwritable_record_is_counted_and_does_not_strand_the_next_paper(
         "extract.cli.make_client",
         lambda: StubClient(
             model_response(POSITIVE),
-            model_response(RECORD),  # first paper: extracted, then unwritable
+            *RECORD_RESPONSES,  # first paper: extracted, then unwritable
             model_response(POSITIVE),
-            model_response(RECORD),  # second paper: fine
+            *RECORD_RESPONSES,  # second paper: fine
         ),
     )
     replace = os.replace
@@ -540,9 +589,9 @@ def test_an_unencodable_record_fails_one_paper_and_not_the_batch(
         "extract.cli.make_client",
         lambda: StubClient(
             model_response(POSITIVE),
-            model_response(SURROGATE_RECORD),  # first paper: unencodable
+            *SURROGATE_RESPONSES,  # first paper: unencodable
             model_response(POSITIVE),
-            model_response(RECORD),  # second paper: fine
+            *RECORD_RESPONSES,  # second paper: fine
         ),
     )
 
@@ -574,6 +623,7 @@ def test_a_bare_nan_never_becomes_a_record_and_leaves_the_paper_pending(
     store_papers(engine, [paper()])
     client = StubClient(
         model_response(POSITIVE),
+        model_response(identity_payload()),
         model_response(nan_body()),
         model_response(nan_body()),  # ... and its one retry
     )
@@ -589,7 +639,7 @@ def test_a_bare_nan_never_becomes_a_record_and_leaves_the_paper_pending(
     assert list((tmp_path / VERSION).iterdir()) == []
 
     # Still pending: a later run attempts it again rather than counting it done.
-    again = StubClient(model_response(POSITIVE), model_response(RECORD))
+    again = StubClient(model_response(POSITIVE), *RECORD_RESPONSES)
     second = run_extraction(engine, client=again, limit=20, out_root=tmp_path)
 
     assert (second.considered, second.already_extracted, second.extracted) == (1, 0, 1)
@@ -627,9 +677,10 @@ def test_a_read_only_out_directory_aborts_before_any_model_call(
     """The probe's whole point: the run must cost nothing when it cannot store anything.
 
     `mkdir(exist_ok=True)` succeeds on a read-only directory, so without the
-    probe each of these two papers would be classified and extracted — two
-    model calls apiece — before failing at the write, and the per-paper
-    `OSError` handler would let the next paper repeat it.
+    probe each of these two papers would be classified and extracted — three
+    model calls apiece, the gate and extraction's two — before failing at the
+    write, and the per-paper `OSError` handler would let the next paper repeat
+    it.
     """
     store_papers(engine, [paper("19587680"), paper("19801973")])
     out_dir = tmp_path / VERSION
@@ -737,3 +788,125 @@ def test_the_module_entry_point_exits_with_mains_status(monkeypatch):
             runpy.run_module("extract", run_name="__main__")
         assert calls == [True], "the shim did not call main"
         assert raised.value.code == status
+
+
+# --------------------------------------------------------------------------
+# the provenance header
+# --------------------------------------------------------------------------
+
+
+def header_fields(out: str) -> dict[str, str]:
+    """Parse the `key:` block that precedes the first paper line."""
+    fields: dict[str, str] = {}
+    for line in out.splitlines():
+        if line.startswith(("skip ", "ok ", "FAIL", "papers:", "warning:", "skipped:")):
+            break
+        key, separator, value = line.partition(":")
+        if separator:
+            fields[key.strip()] = value.strip()
+    return fields
+
+
+def test_the_header_records_what_produced_the_run(engine, tmp_path, capsys):
+    """A log has to say what command made it, not only what it did.
+
+    Neither the 2026-08-17 nor the 2026-08-19 log carried the argv, the limit,
+    the queue size or a timestamp, so "30 considered" could not be tied to
+    `--limit 30` by anyone reading the file. Each field is asserted by name
+    because each answers a different question a reader of the log will have.
+    """
+    store_papers(engine, [paper()])
+    client = StubClient(model_response(NEGATIVE))
+
+    run_extraction(
+        engine, client=client, limit=7, out_root=tmp_path,
+        argv=["--limit", "7", "--out", str(tmp_path)],
+    )
+
+    fields = header_fields(capsys.readouterr().out)
+    assert fields["limit"] == "7"
+    assert fields["argv"] == f"--limit 7 --out {tmp_path}"
+    assert fields["out_dir"] == str(tmp_path / VERSION)
+    assert fields["schema"].startswith(f"v{VERSION}")
+    assert fields["queued"].startswith("1 paper")
+    # A timestamp that parses, is UTC, and is not a placeholder.
+    started = datetime.fromisoformat(fields["started"])
+    assert started.tzinfo is not None and started.utcoffset() == timedelta(0)
+
+
+def test_the_header_precedes_the_first_paper_line(engine, tmp_path, capsys):
+    """Order is the contract: a header after the papers cannot be grepped as one."""
+    store_papers(engine, [paper()])
+    run_extraction(
+        engine, client=StubClient(model_response(NEGATIVE)), limit=20,
+        out_root=tmp_path, argv=[],
+    )
+
+    lines = capsys.readouterr().out.splitlines()
+    first_paper = next(i for i, line in enumerate(lines) if line.startswith("skip "))
+    header = [line.split(":")[0] for line in lines[:first_paper]]
+    assert header == ["started", "argv", "limit", "out_dir", "schema", "queued"]
+
+
+def test_the_queue_count_is_the_work_available_not_the_limit(engine, tmp_path, capsys):
+    """`queued` answers "30 of how many?", which the summary line cannot.
+
+    Three eligible papers and a limit of one: the summary will say one
+    considered, and only the header distinguishes that from a corpus with one
+    paper left in it.
+    """
+    store_papers(engine, [paper("1"), paper("2"), paper("3")])
+
+    run_extraction(
+        engine, client=StubClient(model_response(NEGATIVE)), limit=1,
+        out_root=tmp_path, argv=[],
+    )
+
+    assert header_fields(capsys.readouterr().out)["queued"].startswith("3 paper")
+
+
+def test_the_queue_count_excludes_what_is_already_extracted(engine, tmp_path, capsys):
+    """Eligible means not yet done, the same three conditions `_papers` applies."""
+    store_papers(engine, [paper("1"), paper("2")])
+    run_extraction(
+        engine, client=StubClient(model_response(POSITIVE), *RECORD_RESPONSES),
+        limit=1, out_root=tmp_path, argv=[],
+    )
+    capsys.readouterr()
+
+    run_extraction(
+        engine, client=StubClient(model_response(NEGATIVE)), limit=1,
+        out_root=tmp_path, argv=[],
+    )
+
+    assert header_fields(capsys.readouterr().out)["queued"].startswith("1 paper")
+
+
+def test_a_run_driven_directly_says_so_rather_than_inventing_an_argv(engine, tmp_path, capsys):
+    """`run_extraction` is called directly by tests and could be by other callers.
+
+    Reading `sys.argv` here would print pytest's own arguments into the header
+    and claim they produced the run. Saying the run was driven directly is the
+    honest field.
+    """
+    store_papers(engine, [paper()])
+    run_extraction(
+        engine, client=StubClient(model_response(NEGATIVE)), limit=20, out_root=tmp_path
+    )
+
+    assert header_fields(capsys.readouterr().out)["argv"] == "(called directly)"
+
+
+def test_main_records_the_argv_it_was_given(engine, tmp_path, capsys, monkeypatch):
+    """End to end: the argv in the header is the one the operator typed."""
+    monkeypatch.setattr("extract.cli.make_engine", lambda: engine)
+    monkeypatch.setattr(
+        "extract.cli.make_client", lambda: StubClient(model_response(NEGATIVE))
+    )
+    store_papers(engine, [paper()])
+
+    assert main(["--limit", "3", "--out", str(tmp_path)]) == 0
+
+    fields = header_fields(capsys.readouterr().out)
+    assert fields["argv"] == f"--limit 3 --out {tmp_path}"
+    assert fields["limit"] == "3"

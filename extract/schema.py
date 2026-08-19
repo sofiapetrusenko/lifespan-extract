@@ -2,13 +2,20 @@
 
 Three jobs, all keyed to the same file so there is exactly one source of truth:
 
-1. **Derive the request schema.** The structured-output subset the API accepts
+1. **Derive the request schemas.** The structured-output subset the API accepts
    is narrower than draft 2020-12: no `pattern`, no numeric or length bounds,
    no `unevaluatedProperties`, and every object must close with
    `additionalProperties: false`. So the schema sent to the model is *derived
    programmatically* from the real one — `allOf` composition flattened, `$ref`s
    inlined, unsupported keywords dropped. Hand-copying a second schema would
    guarantee the two drift the first time the real one changes.
+
+   There are two request schemas rather than one, because the endpoint refuses
+   a schema carrying more than 16 union-typed parameters and a schema covering
+   the whole experiment object carries 20. Both are derived the same way from
+   the same file; `IDENTITY_PROPERTIES` and `OUTCOME_PROPERTIES` partition the
+   experiment's properties between them, and neither restates anything the file
+   already says.
 
 2. **Decide what the model is not asked for.** Three things in the record are
    not claims about the paper's prose and are therefore not the model's to
@@ -32,6 +39,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Sequence
 from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any
@@ -85,6 +93,62 @@ CODE_ASSIGNED_CLAIM_KEYS = frozenset({"extracted_from"})
 # assembled record, where there is no schema to consult.
 CLAIM_KEYS = frozenset({"value", "source_quote", "confidence"})
 
+QUOTE_KEY = "source_quote"
+
+# The experiment's properties, partitioned between the two requests. The first
+# asks what the experiment was — the organism, the animals, the intervention —
+# and the second what it found. Together they must cover every property of the
+# `experiment` definition that the model is asked for at all, which
+# `tests/test_extract_schema.py` pins against the file: a property added in a
+# later schema version has to be assigned to one call or the other, and the
+# test fails until it is.
+IDENTITY_PROPERTIES: tuple[str, ...] = (
+    "organism",
+    "species",
+    "strain",
+    "sex",
+    "sample_size",
+    "intervention",
+)
+OUTCOME_PROPERTIES: tuple[str, ...] = ("mechanism", "lifespan_effect")
+
+# The join between the two calls. It exists only in the second request schema —
+# it is transport, not part of a record — and `extract/extract.py` consumes it
+# during the merge and never writes it into a record.
+EXPERIMENT_INDEX = "experiment_index"
+
+EXPERIMENT_INDEX_SCHEMA: dict[str, Any] = {
+    "type": "integer",
+    "description": (
+        "Zero-based index of the experiment this outcome belongs to, as numbered "
+        "in the list of experiments given in the user message. Return exactly one "
+        "outcome for each listed experiment: every index appears exactly once, "
+        "and no index outside the list is used."
+    ),
+}
+
+# What the array means in the second request. The file's own description — "One
+# entry per (organism, intervention) pair reported in the paper" — is the first
+# request's contract, and repeating it here would ask the second call to derive
+# the list of experiments again instead of reporting against the list it was
+# given.
+OUTCOME_ARRAY_DESCRIPTION = (
+    "One entry per experiment listed in the user message, each naming the "
+    "experiment it belongs to with experiment_index. That list is already "
+    "fixed: do not add to it, drop from it, merge entries or reorder them."
+)
+
+# The claim paths, relative to one experiment, whose `source_quote` is emitted
+# as a plain string rather than as `string | null`. See `_non_nullable_quote`.
+NON_NULLABLE_QUOTE_CLAIMS: frozenset[tuple[str, ...]] = frozenset(
+    {
+        ("organism",),
+        ("intervention", "type"),
+        ("intervention", "agent"),
+        ("lifespan_effect", "direction"),
+    }
+)
+
 _DEFS_PREFIX = "#/$defs/"
 
 _validator: Draft202012Validator | None = None
@@ -129,13 +193,28 @@ def schema_version(document: dict[str, Any]) -> str:
     return version
 
 
-def build_extraction_schema(document: dict[str, Any]) -> dict[str, Any]:
-    """Return the API-subset schema for one paper's `experiments` array.
+def build_extraction_schema(
+    document: dict[str, Any], properties: Sequence[str], *, index: bool = False
+) -> dict[str, Any]:
+    """Return the API-subset schema for one request's `experiments` array.
+
+    `properties` names the experiment properties this request asks the model
+    for, in the order they are presented to it; each must exist in the schema's
+    `experiment` definition. Extraction sends two requests, one per half of
+    `IDENTITY_PROPERTIES` / `OUTCOME_PROPERTIES`, because a schema covering the
+    whole experiment object carries 20 union-typed parameters and the endpoint
+    compiles at most 16.
+
+    `index` adds the required, non-nullable `experiment_index` that joins an
+    outcome back to the experiment the first request identified, and replaces
+    the array's description for the reason `OUTCOME_ARRAY_DESCRIPTION` gives.
 
     Guarantees the result contains no keyword from `UNSUPPORTED_KEYWORDS`, that
     every object closes with `additionalProperties: false` and lists all of its
-    properties as required, and that the code-assigned keys are absent — so a
-    model response can never claim provenance the caller did not supply.
+    properties as required, that the code-assigned keys are absent — so a model
+    response can never claim provenance the caller did not supply — and that
+    the claims in `NON_NULLABLE_QUOTE_CLAIMS` carry a `source_quote` that is a
+    plain string.
     """
     defs = document.get("$defs")
     experiments = document.get("properties", {}).get("experiments")
@@ -150,7 +229,7 @@ def build_extraction_schema(document: dict[str, Any]) -> dict[str, Any]:
             "there is nothing to ask the model to produce."
         )
 
-    items = _flatten(experiments["items"], defs, ())
+    items = _select(_flatten(experiments["items"], defs, ()), properties, index=index)
     return {
         "type": "object",
         "additionalProperties": False,
@@ -158,11 +237,49 @@ def build_extraction_schema(document: dict[str, Any]) -> dict[str, Any]:
         "properties": {
             "experiments": {
                 "type": "array",
-                "description": experiments.get("description", ""),
+                "description": (
+                    OUTCOME_ARRAY_DESCRIPTION if index else experiments.get("description", "")
+                ),
                 "items": items,
             }
         },
     }
+
+
+def _select(
+    items: dict[str, Any], properties: Sequence[str], *, index: bool
+) -> dict[str, Any]:
+    """Return `items` asking for `properties` only, `experiment_index` first.
+
+    Raises rather than silently omitting a property the caller named but the
+    schema does not declare: the two halves are meant to partition the
+    experiment object, and a name that matches nothing would take its field out
+    of both requests — the model would never be asked for it, and no record
+    would carry it, with nothing anywhere to say so.
+    """
+    available = items.get("properties")
+    if not isinstance(available, dict):
+        raise ExtractError(
+            f"{SCHEMA_PATH.name}: the experiment definition declares no properties, "
+            "so there is nothing to ask the model for."
+        )
+    if not properties:
+        raise ExtractError(
+            "a request schema that asks for no experiment property asks for nothing; "
+            "name the properties this request covers."
+        )
+    missing = [name for name in properties if name not in available]
+    if missing:
+        raise ExtractError(
+            f"{SCHEMA_PATH.name}: the request schema was asked for experiment "
+            f"propert{'y' if len(missing) == 1 else 'ies'} {missing}, which the "
+            "experiment definition does not declare (or which is assigned by the "
+            f"caller and pruned): available are {sorted(available)}."
+        )
+
+    selected: dict[str, Any] = {EXPERIMENT_INDEX: dict(EXPERIMENT_INDEX_SCHEMA)} if index else {}
+    selected.update({name: available[name] for name in properties})
+    return {**items, "properties": selected, "required": list(selected)}
 
 
 def validate_record(record: Any, document: dict[str, Any]) -> None:
@@ -201,7 +318,7 @@ def check_provenance(record: Any) -> None:
     empty string is a substring of every text there is, so the quote would
     "verify" against a paper it was never read from.
     """
-    for path, claim in _iter_claims(record):
+    for path, claim in iter_claims(record):
         value = claim.get("value")
         quote = claim.get("source_quote")
         absent = value is None or value == "not_reported"
@@ -234,7 +351,7 @@ def check_quotes_verbatim(record: Any, text: str) -> None:
     noticing them is the entire value of the check.
     """
     haystack = collapse_whitespace(text)
-    for path, claim in _iter_claims(record):
+    for path, claim in iter_claims(record):
         quote = claim.get("source_quote")
         if not isinstance(quote, str) or not quote:
             continue
@@ -337,7 +454,52 @@ def _flatten(node: Any, defs: dict[str, Any], path: tuple[str, ...]) -> Any:
     if inherited and "description" not in merged:
         merged["description"] = inherited
 
+    if path[-1:] == (QUOTE_KEY,) and path[:-1] in NON_NULLABLE_QUOTE_CLAIMS:
+        merged = _non_nullable_quote(merged, path)
+
     return _split_nullable_type(merged)
+
+
+def _non_nullable_quote(node: dict[str, Any], path: tuple[str, ...]) -> dict[str, Any]:
+    """Return `node` with `null` dropped from a quote that can never be null.
+
+    An override on the *derived* schema, and only there.
+    `schema/experiment.schema.json` declares `source_quote` nullable once, in
+    `$defs/provenance`, and all fifteen claim wrappers inherit it through
+    `allOf`. Four of them cannot use it: `organism`, `intervention.type`,
+    `intervention.agent` and `lifespan_effect.direction` each carry a value that
+    can never be absent — a closed enum with no `not_reported` member, or a
+    required string that never takes one — so under the provenance rule their
+    quote can never be null either, and not one of the 26 records in
+    `data/gold/` has one. Dropping these four unions is what takes the request
+    from 24 union-typed parameters to 20, against an endpoint limit of 16 that
+    the first live run hit.
+
+    It is an override rather than a change to the file because opening v0.5.0
+    inside Phase 2 would move the gold-set contract mid-phase, and v0.5.0 is
+    already the container for other candidates. NOTES.md (2026-08-13) records
+    the shape the schema change should take when that version opens.
+
+    An override restates a fact the file does not carry, so the fact is pinned
+    against the data instead of asserted here: a test fails if any of the four
+    quotes is ever null anywhere in `data/gold/`.
+
+    Raises if the file ever declares one of the four as something other than
+    `string | null`. A silent no-op would leave the request over the endpoint's
+    limit with nothing to say why.
+    """
+    declared = node.get("type")
+    if declared == "string":
+        return node
+    if not (isinstance(declared, list) and sorted(declared) == ["null", "string"]):
+        raise ExtractError(
+            f"{SCHEMA_PATH.name}: {'.'.join(path)} is declared as {declared!r}, but "
+            "the request schema drops its nullability on the assumption that it is "
+            "`string | null`. Either the claim is no longer one whose value is "
+            f"always present, or {'.'.join(path[:-1])} should come out of "
+            "NON_NULLABLE_QUOTE_CLAIMS."
+        )
+    return {**node, "type": "string"}
 
 
 def _resolve_composition(
@@ -401,18 +563,24 @@ def _split_nullable_type(node: dict[str, Any]) -> dict[str, Any]:
     return rewritten
 
 
-def _iter_claims(node: Any, path: str = "") -> list[tuple[str, dict[str, Any]]]:
-    """Return every (path, claim wrapper) pair inside `node`."""
+def iter_claims(node: Any, path: str = "") -> list[tuple[str, dict[str, Any]]]:
+    """Return every (path, claim wrapper) pair inside `node`.
+
+    Claims are recognised by shape rather than by a list of field paths, so a
+    claim added to the schema is walked without an edit here. Public because
+    `extract/extract.py` echoes one call's claims into the next call's prompt
+    and has to enumerate them the same way the checks below do.
+    """
     found: list[tuple[str, dict[str, Any]]] = []
     if isinstance(node, dict):
         if CLAIM_KEYS <= set(node):
             found.append((path or "<root>", node))
             return found
         for key, child in node.items():
-            found += _iter_claims(child, f"{path}.{key}" if path else key)
+            found += iter_claims(child, f"{path}.{key}" if path else key)
     elif isinstance(node, list):
         for index, child in enumerate(node):
-            found += _iter_claims(child, f"{path}[{index}]")
+            found += iter_claims(child, f"{path}[{index}]")
     return found
 
 

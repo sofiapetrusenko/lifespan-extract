@@ -73,7 +73,11 @@ KEYED_MIN_INTERVAL = 0.11
 
 TIMEOUT = httpx.Timeout(30.0)
 
-_YEAR_RE = re.compile(r"\b(1[89]\d{2}|20\d{2})\b")
+# Digit boundaries, not word boundaries. `\b` cannot match between a digit and a
+# letter, so `\b(20\d{2})\b` finds nothing in `2025Nov-Dec` — which is exactly
+# the shape PubDate children produce when flattened. `(?<!\d)`/`(?!\d)` still
+# reject `12025` and `20255`, so a year is no more inferred than before.
+_YEAR_RE = re.compile(r"(?<!\d)(1[89]\d{2}|20\d{2})(?!\d)")
 _PMID_RE = re.compile(r"^\d+$")
 
 
@@ -410,10 +414,37 @@ def _year(article: Element) -> int | None:
 
     Returns None when no four-digit year is present; the year is never inferred
     from the ingest date.
+
+    Reads `PubDate/Year` directly rather than flattening `PubDate` and searching
+    the result. The DTD gives PubDate either `(Year, Month?, Day?)` or a single
+    free-text `MedlineDate`, so the year is a named child whenever it exists at
+    all — searching for it was always the indirect route. Flattening actively
+    broke it: `itertext()` concatenates children with no separator, so
+    `<Year>2025</Year><Month>Sep</Month><Day>23</Day>` became `2025Sep23`, and
+    28 of the 30 rows ingested before this fix carry `year IS NULL` for that
+    reason alone. Only Year-only PubDates ever parsed.
+
+    The other candidate fix was to join `itertext()` with spaces inside `_text`.
+    Rejected: `_text` also flattens ArticleTitle and AbstractText, where inline
+    markup is *intra-word*. Measured against live PubMed XML, that change turns
+    `H2O2` into `H 2 O 2` and `Fe3+/Fe2+` into `Fe 3+ /Fe 2+` — corrupting the
+    titles that feed slugs, prompts and `experiment_id` in order to repair a
+    field that has its own element.
+
+    `MedlineDate` stays a regex search because it genuinely is free text
+    ('2025 Nov-Dec', '1998 Winter'), and it is one text node, so no
+    concatenation can run its year into a neighbour.
     """
     pubdate = article.find("Journal/JournalIssue/PubDate")
-    match = _YEAR_RE.search(_text(pubdate))
-    return int(match.group(1)) if match else None
+    if pubdate is None:
+        return None
+
+    year = _YEAR_RE.fullmatch(_text(pubdate.find("Year")))
+    if year:
+        return int(year.group(1))
+
+    medline = _YEAR_RE.search(_text(pubdate.find("MedlineDate")))
+    return int(medline.group(1)) if medline else None
 
 
 def _doi(pubmed_article: Element, article: Element) -> str | None:
