@@ -10,12 +10,22 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 
+# Live run logs: evidence of a run, not an artefact of the repo. Regenerable by
+# re-running the extractor; kept locally so a failed run's output does not
+# arrive as a diff.
+runs/
+
 # Derived data. The abstract cache is refetchable from PubMed by PMID, so it is
 # a local speed-up, not a record. Drafts are working files on their way into
 # data/gold/ by hand; only the finished, reviewed file belongs in the repo.
 data/.abstract_cache/
 data/drafts/
+# Extractor output: regenerable from the papers in the database by re-running
+# `python -m extract`, and it is model output, not a record anyone reviewed.
+data/extracted/
 
 # OS
 .DS_Store
 .claude/settings.local.json
+
+

@@ -12,6 +12,8 @@ Runs from any working directory: paths resolve relative to this file, not cwd.
 
 from __future__ import annotations
 
+import argparse
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -34,6 +36,19 @@ except ImportError as exc:
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCHEMA_PATH = REPO_ROOT / "schema" / "experiment.schema.json"
 GOLD_DIR = REPO_ROOT / "data" / "gold"
+
+# `sha256sum`/`shasum -a 256` format: "<hex>  <name>", two spaces, one per line.
+# Deliberately a standard format rather than JSON, so the human can verify the
+# set with `shasum -a 256 -c MANIFEST.sha256` and never has to trust this script
+# to audit its own integrity claim.
+MANIFEST_NAME = "MANIFEST.sha256"
+MANIFEST_LINE = "{digest}  {name}\n"
+
+# A floor, not a target. Validating only the files that happen to be present
+# means an empty directory validates clean, and so does one with nine of ten —
+# deletion is the one corruption a per-file check cannot see. `>=` rather than
+# `==` so the set can grow without editing this, but never shrink silently.
+EXPECTED_GOLD_FILES = 10  # PLAN.md Phase 0: ten hand-labeled papers
 
 # Root-level annotation in the schema file. Not a JSON Schema keyword: validators
 # ignore unknown keywords, so this carries the version without affecting validation.
@@ -97,19 +112,148 @@ def check_file(path: Path, validator: Draft202012Validator) -> list[str]:
     return [f"{format_path(e)}: {e.message}" for e in errors]
 
 
-def main() -> int:
+def digest(path: Path) -> str:
+    """SHA-256 of a file's bytes, as lowercase hex."""
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def read_manifest(path: Path) -> dict[str, str]:
+    """Parse a sha256sum-format manifest into {filename: digest}.
+
+    Raises ValueError on a malformed line rather than skipping it: a manifest
+    that is partly unreadable protects only the part that parsed, and silently
+    covering nine of ten files is the failure this whole mechanism exists to
+    make impossible.
+    """
+    entries: dict[str, str] = {}
+    for number, line in enumerate(path.read_text().splitlines(), start=1):
+        if not line.strip():
+            continue
+        hexdigest, separator, name = line.partition("  ")
+        if not separator or len(hexdigest) != 64 or not name.strip():
+            raise ValueError(f"{path.name} line {number} is not '<sha256>  <name>': {line!r}")
+        entries[name.strip()] = hexdigest.strip()
+    return entries
+
+
+def manifest_problems(gold_files: list[Path], entries: dict[str, str]) -> list[str]:
+    """Return every discrepancy between the files on disk and the manifest.
+
+    All three directions, because each is a different failure: a changed file
+    is an edit, a file absent from the manifest is an addition that skipped the
+    human-run regeneration, and an entry whose file is gone is a deletion the
+    per-file checks cannot see because there is nothing left to check.
+    """
+    problems: list[str] = []
+    on_disk = {path.name: path for path in gold_files}
+
+    for name in sorted(on_disk):
+        recorded = entries.get(name)
+        if recorded is None:
+            problems.append(
+                f"{name}: present in {GOLD_DIR.name}/ but absent from {MANIFEST_NAME}"
+            )
+            continue
+        found = digest(on_disk[name])
+        if found != recorded:
+            problems.append(
+                f"{name}: content does not match {MANIFEST_NAME}\n"
+                f"        manifest: {recorded}\n"
+                f"        on disk : {found}"
+            )
+
+    for name in sorted(set(entries) - set(on_disk)):
+        problems.append(
+            f"{name}: listed in {MANIFEST_NAME} but missing from {GOLD_DIR.name}/"
+        )
+    return problems
+
+
+def write_manifest(gold_files: list[Path], path: Path) -> int:
+    """Regenerate the manifest. Human-only — see the note in main()."""
+    path.write_text(
+        "".join(
+            MANIFEST_LINE.format(digest=digest(f), name=f.name)
+            for f in sorted(gold_files, key=lambda f: f.name)
+        )
+    )
+    print(f"wrote {len(gold_files)} digest(s) to {path.relative_to(REPO_ROOT)}")
+    return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--write-manifest",
+        action="store_true",
+        help=(
+            f"regenerate {MANIFEST_NAME} from the files currently in "
+            f"{GOLD_DIR.name}/. Writes into the gold set, so it is the human's "
+            "to run, like check_gold.py --promote."
+        ),
+    )
+    args = parser.parse_args(argv)
+
     validator, schema_version = load_schema()
 
     if not GOLD_DIR.is_dir():
         sys.exit(f"gold directory not found: {GOLD_DIR}")
 
     gold_files = sorted(GOLD_DIR.glob("*.json"))
-    if not gold_files:
-        # Legitimate during Phase 0, and stated out loud rather than passing
-        # silently — an empty glob must not look like a clean run.
-        print(f"No gold files found in {GOLD_DIR.relative_to(REPO_ROOT)}/")
-        print("Nothing to validate.")
-        return 0
+    if len(gold_files) < EXPECTED_GOLD_FILES:
+        # Was a pass with "Nothing to validate." while Phase 0 was still
+        # labelling. Phase 0 is merged, so today an empty or thinned directory
+        # is a deletion, not a work-in-progress — and every other check here is
+        # per-file, so it is the one corruption none of them can see.
+        where = GOLD_DIR.relative_to(REPO_ROOT)
+        print(
+            f"{where}/ holds {len(gold_files)} file(s); expected at least "
+            f"{EXPECTED_GOLD_FILES}.",
+            file=sys.stderr,
+        )
+        print(
+            "The gold set is human-controlled ground truth: files are added by "
+            "hand and never removed by tooling. If this is a deliberate change, "
+            "update EXPECTED_GOLD_FILES in this script in the same commit.",
+            file=sys.stderr,
+        )
+        return 1
+
+    manifest = GOLD_DIR / MANIFEST_NAME
+    if args.write_manifest:
+        return write_manifest(gold_files, manifest)
+
+    if not manifest.is_file():
+        print(f"{manifest.relative_to(REPO_ROOT)} not found.", file=sys.stderr)
+        print(
+            "Every gold file's digest is recorded there, and without it a "
+            "silent edit to a record is indistinguishable from the record. "
+            "Generate it once, by hand:\n"
+            "    python scripts/validate_gold.py --write-manifest",
+            file=sys.stderr,
+        )
+        return 1
+
+    try:
+        entries = read_manifest(manifest)
+    except ValueError as exc:
+        print(f"{exc}", file=sys.stderr)
+        return 1
+
+    drift = manifest_problems(gold_files, entries)
+    if drift:
+        print(f"FAIL  {manifest.relative_to(REPO_ROOT)}  ({len(drift)} discrepancy(ies))")
+        for problem in drift:
+            print(f"        {problem}")
+        print()
+        print(
+            "The gold set is human-controlled ground truth. If a change here is "
+            "deliberate, regenerate the manifest in the same commit:\n"
+            "    python scripts/validate_gold.py --write-manifest",
+            file=sys.stderr,
+        )
+        return 1
+    print(f"ok    {manifest.relative_to(REPO_ROOT)}  ({len(entries)} digest(s))")
 
     failed = 0
     for path in gold_files:
