@@ -4,7 +4,7 @@
 
 An index, not a discussion. Every decision this log has deliberately left open
 is listed here with a pointer to the entry that argues it; the arguments are
-not repeated, and nothing is resolved here. Added because the ten are scattered
+not repeated, and nothing is resolved here. Added because the eleven are scattered
 across five months of entries in the order they came up rather than in any
 order they would be read in.
 
@@ -69,6 +69,12 @@ and *accepted* is not an open decision; it stays in the entry that accepted it.
   — eval design for the classifier set: ratio, headline metric, and a shared
   sample*, section *Known limitation: the positives and the extraction gold set
   are the same papers*
+- **Whether a docstring's claims can be checked mechanically.** Prose describing
+  a mechanism has nothing in the toolchain keeping it true, and it has gone
+  false six times in this phase — twice inside the round that recorded the
+  pattern. Whether a check, a review step, or a convention against putting
+  counts in prose can catch it, or whether it stays a thing reviewers catch.
+  → *2026-08-13 — Docstrings describe a mechanism as it was, not as it is*
 
 ---
 
@@ -356,6 +362,8 @@ Colman 2009 is the case. Its abstract gives no lifespan statistic at all: "At th
 Every wrapper in this record is `high` except `lifespan_effect.direction`, which is `medium`. The distinction is between reading and reasoning. Organism, agent, intervention type, and every `not_reported`/null are read verbatim off the abstract — the text either says rhesus macaques or it does not. `direction: increase` is not read off anything: the abstract states no lifespan statistic, so the value is an inference from a claim about aging-related mortality to a claim about lifespan direction. That is a defensible inference and still the right label, but it is a different epistemic act from transcription, and the confidence field is where that difference is supposed to show up.
 
 **The existing gold files barely exercise this field, and are worth a review pass.** Measured across all six: `harrison2009` 28/28 `high`, `kenyon1993` 14/14, `martinmontalvo2013` 28/28, `miller2011` 56/56 — four files with no variation at all. `lakowski1998` is 13 `high` / 1 `medium` and `strong2016` is 118 `high` / 8 `medium`. So the field is not literally constant, but 9 non-`high` values out of 266 is close enough that the concern stands: a confidence field that almost never varies is not measuring anything, and Phase 3 scores it by exact category match, so a gold set that is ~97% `high` makes "always answer high" a near-perfect strategy. Either the labelling really was that uniform — plausible for abstracts that state their numbers outright — or `high` has been the default keystroke rather than a judgement. Worth re-reading the six files with the reading-versus-reasoning line above in hand before Phase 3 treats the field as a signal.
+
+**Corroborated outside the gold set, 2026-08-17.** The first full Phase 2 run produced a *S. cerevisiae* record (`data/extracted/0.4.0/doi-10-1002-yea-70016-89f2d0b0.json`) carrying `high` on all 15 of its wrappers, 9 of which hold an absent value — null or `not_reported`. Under the reading-versus-reasoning line above, an absent value is the one case where `high` is hardest to defend on its face: there is no text to have read. So the pattern is not an artefact of one labeller's keystrokes. A model given the same field and the same instruction reproduces it, which makes the field uninformative on both sides of the eval rather than only in the gold set.
 
 ---
 
@@ -1268,3 +1276,137 @@ from PATH, which on this machine is conda 3.9. So these tests would NOT have cau
 the original failure — they assert the exit-code contract, not interpreter
 compatibility. `from __future__ import annotations` is what closes that gap, and it
 is why pinning a newer Python would have been the wrong fix.
+
+---
+
+## 2026-08-13 — Docstrings describe a mechanism as it was, not as it is
+
+Moved here from `DEBT.md`, where it was briefly D27. It did not belong there:
+that file's scope line is "work that needs doing — not decisions, not
+rationale, not loop history", and this is all three. The scope line is the only
+thing keeping `DEBT.md` from becoming a second copy of this file, so it was
+the entry that moved rather than the scope.
+
+**The pattern.** Across several consecutive rounds the mechanism converged
+faster than the prose describing it. Twice a docstring was invalidated by the
+same commit that changed what it described, and twice a docstring was false on
+the day it was written.
+
+Every instance, named, because a count here would be the failure the *Test
+honesty* section is about:
+
+1. **The prompt-diff comment** in `extract/extract.py`, describing how the
+   split prompts differed from the single prompt they came from. Wrong in three
+   consecutive rounds. Corrected twice, then deleted — see the entry below on
+   why a hand-maintained diff is the wrong instrument.
+2. **`conftest.extraction_responses`' red count.** A wrong number was the fix in
+   one round; the next round changed `experiment_payload` and re-invalidated the
+   correction *in the same commit*, without the sentence being re-read. The
+   number is now gone rather than corrected a third time.
+3. **The forward-compatibility claim** on `payload_identity`, asserting the
+   derivation reached a property a later schema version might add. It could not:
+   it subscripted a hand-written literal, so a new `IDENTITY_PROPERTIES` entry
+   aborted collection before a test ran. False on the day it was written.
+4. **The guard-coverage claim** on `_refuse_indistinguishable_outcomes`,
+   asserting coverage its placement did not give. False on the day written.
+5. **The corrected forward-compatibility claim**, first attempt: it said a new
+   property "reads as null for both experiments and this assertion catches the
+   sameness". Measured — the test supplies the property itself as an override
+   and passes. Caught by measuring, inside the fix for this very pattern.
+6. **The corrected forward-compatibility claim, second attempt:** it attributed
+   the null-reading to `_half`'s `.get` when `payload_identity` has its own.
+   Both are independently load-bearing — reverting either alone aborts
+   collection. Caught by a reviewer, also inside the fix for this pattern.
+
+Instances 5 and 6 are the ones worth sitting with: the round that recorded this
+pattern produced two more of it while recording it.
+
+**What they have in common** is not carelessness about prose. Each was true of a
+design that was live when the sentence was written and stopped being true a few
+edits later, and nothing in the toolchain reads a docstring. Every one was found
+by someone reading the claim against the code — which works, and has worked
+every time, but only because a reviewer is paid to be suspicious of sentences.
+
+**What it risks.** A reader believing a description of a mechanism that no
+longer exists — including Phase 3, which reads this file as input. The failure
+is quiet by construction: the tests pass, because the mechanism is right; it is
+only the account of it that is wrong.
+
+**Open question, reserved to the human.** Whether anything can catch this
+mechanically — a docstring-claim check, a review step that diffs prose against
+the same commit's code, a convention that counts and coverage claims do not go
+in prose at all — or whether it stays a thing reviewers catch. No answer is
+proposed here. The two mitigations applied so far, deleting the comment and
+dropping the count, both worked by *removing* the claim rather than by keeping
+it true, and that is not a general answer.
+
+---
+
+## 2026-08-17 — `_year` was tested against a PubDate shape PubMed does not usually send
+
+A Phase 2 live run failed loudly on 28 of 30 ingested papers with
+"paper.year is missing". The extractor was right to refuse; the year was
+genuinely absent from the row. `_year` searched the *flattened* PubDate, and
+`itertext()` concatenates children with no separator, so
+`<Year>2025</Year><Month>Sep</Month><Day>23</Day>` arrived as `2025Sep23` —
+where the old pattern's trailing `\b` cannot match, because a digit followed by
+a letter is not a word boundary. Only a Year-only PubDate ever parsed. Of the 30
+rows, 28 carried a Month; those were the 28.
+
+Same failure mode as the `protect_paths` incident: a component tested against a
+shape the live system does not produce. There, every test drove the hook as an
+argv while the harness ran it as a shell command string; here, every ingest
+fixture carried a PubDate that happened to flatten cleanly. Both suites were
+green, both components were inert in production, and in both cases the fixtures
+were written from the same assumption as the code.
+
+Fixed by reading `PubDate/Year` directly, with `MedlineDate` free text as the
+fallback it was always meant to be. The new fixtures under
+`tests/fixtures/pubmed_pubdate/` are verbatim efetch responses, one per PubDate
+shape the live run actually produced.
+
+---
+
+## 2026-08-18 — what the gold-set manifest does and does not attest
+
+`data/gold/MANIFEST.sha256` records a SHA-256 per gold file, and
+`scripts/validate_gold.py` fails on any file that changed, any file absent from
+the manifest, and any entry whose file is gone. What it establishes is
+"unchanged since the manifest was generated" — and the manifest is generated
+now, weeks after the window in which the `protect_paths` hook was inert under
+Python 3.9 and every write it was supposed to refuse would have gone through
+unremarked. It therefore attests nothing about the labelling itself, nor about
+anything that happened to these files before today. Read as provenance for the
+gold set's contents, it says more than it can: it is a tripwire from this point
+forward, not a chain of custody backwards.
+
+---
+
+## 2026-08-19 — the guard blocks commands that only name a gold-set script beside a human-only flag
+
+Moved here from `DEBT.md`, where it was briefly D29. It did not belong there:
+that file's scope line is "work that needs doing", and an accepted trade-off is
+a decision. Keeping it would have meant a new "Accepted trade-offs" heading —
+widening the scope for one entry — and a D1–D29 range counting entries of two
+different kinds. The heading went with it.
+
+`check_promote`'s early return is gated on `HUMAN_ONLY_SCRIPTS`, so a command
+containing both one of those script names and one of `HUMAN_ONLY_FLAGS` is
+refused, whether or not it writes anything. Measured 2026-08-19: an `echo`
+explaining a mutation prediction was blocked, because its prose contained the
+words `validate_gold` and `--write-manifest`. Grepping either script *for* a
+flag name is refused for the same reason.
+
+**The cost** is one round trip, in the conservative direction, on a command the
+author can trivially rewrite. **The alternative is worse.** Narrowing the gate
+back to a single script is exactly what left `validate_gold.py --write-manifest`
+reachable by an agent — adding the flag to `HUMAN_ONLY_FLAGS` alone did nothing,
+because the function returned before the flag loop ran. A gate that inspected
+intent rather than substrings would have to parse the command, which is the
+thing this hook refuses to do everywhere else and for good reason: an
+unparseable command is refused unread rather than guessed at.
+
+Accepted at the price stated, and not a bug to fix. The behaviour is pinned in
+`tests/test_protect_paths.py` — the two `--write-manifest` BLOCK cases, and the
+`rg -n -- --refresh-quotes README.md` ALLOW that keeps the gate from reaching a
+command naming no script at all.
